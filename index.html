@@ -11,73 +11,48 @@
   }
   *{box-sizing:border-box}
   body{font-family:'Pretendard','Noto Sans KR',system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);margin:0;color:var(--ink)}
-  header{background:#fff;border-bottom:1px solid var(--line);padding:12px 20px;font-weight:800}
-  /* 상단 고정 스텝 네비게이션 */
-  .topbar{
-    position:sticky; top:0; z-index:50; background:rgba(255,255,255,.95);
-    backdrop-filter:saturate(1.2) blur(6px); border-bottom:1px solid var(--line);
-  }
-  .stepper{
-    max-width:1100px; margin:0 auto; display:flex; align-items:center; gap:12px; padding:12px 16px;
-  }
-  .step{
-    display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid var(--line);
-    border-radius:14px; background:#fff; font-weight:700; color:#374151; transition:.25s ease;
-  }
-  .step .num{
-    width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-weight:900;
-    border:2px solid #d1d5db; background:#f9fafb; color:#111827;
-  }
-  .step.active{border-color:var(--accent1); box-shadow:0 3px 14px rgba(37,99,235,.12)}
-  .step.active .num{border-color:var(--accent1); background:var(--accent1); color:#fff}
-  .chev{
-    flex:1 1 auto; height:2px; background:linear-gradient(90deg,#e5e7eb 0%,#c7d2fe 50%,#e5e7eb 100%);
-    position:relative; min-width:40px;
-  }
-  .chev:after{content:""; position:absolute; right:-8px; top:-6px; border:8px solid transparent; border-left-color:#e5e7eb; opacity:.7}
-  main{max-width:1100px; margin:18px auto; padding:0 16px}
+  header{background:#fff;padding:12px 20px;font-weight:800;border-bottom:1px solid var(--line)}
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid var(--line)}
+  .stepper{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
+  .step{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font-weight:700;color:#374151;transition:.25s}
+  .step .num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:900;border:2px solid #d1d5db;background:#f9fafb;color:#111827}
+  .step.active{border-color:var(--accent1);box-shadow:0 3px 14px rgba(37,99,235,.12)}
+  .step.active .num{border-color:var(--accent1);background:var(--accent1);color:#fff}
+  .chev{flex:1 1 auto;height:2px;background:linear-gradient(90deg,#e5e7eb 0%,#c7d2fe 50%,#e5e7eb 100%);position:relative;min-width:40px}
+  .chev:after{content:"";position:absolute;right:-8px;top:-6px;border:8px solid transparent;border-left-color:#e5e7eb;opacity:.7}
+  main{max-width:1100px;margin:18px auto;padding:0 16px}
   .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.05);padding:20px;margin:18px 0}
-  /* 페이지 전환 효과 */
-  .page{display:none; opacity:0; transform:translateY(8px); transition:opacity .35s ease, transform .35s ease}
-  .page.show{display:block; opacity:1; transform:none}
-  /* 업로드 블록 */
-  .upload{display:flex; gap:16px; flex-wrap:wrap}
-  .upload-card{flex:1 1 48%; border:2px dashed var(--line); border-radius:12px; padding:20px; text-align:center; background:#fbfdff}
+  .page{display:none;opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s ease}
+  .page.show{display:block;opacity:1;transform:none}
+  .upload{display:flex;gap:16px;flex-wrap:wrap}
+  .upload-card{flex:1 1 48%;border:2px dashed var(--line);border-radius:12px;padding:20px;text-align:center;background:#fbfdff}
   input[type=file]{display:none}
-  label.pick{background:var(--dark); color:#fff; padding:10px 18px; border-radius:12px; font-weight:700; cursor:pointer; display:inline-block}
-  label.pick.flash{background:var(--ok); animation:flash 1.2s ease-out}
+  label.pick{background:var(--dark);color:#fff;padding:10px 18px;border-radius:12px;font-weight:700;cursor:pointer;display:inline-block}
+  label.pick.flash{background:var(--ok);animation:flash 1.2s ease-out}
   @keyframes flash{0%{box-shadow:0 0 0 0 rgba(22,163,74,.7)}80%{box-shadow:0 0 0 18px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
-  .filename{display:block; color:var(--muted); margin-top:8px; min-height:20px}
-  .btn{background:var(--dark); color:#fff; border:none; border-radius:12px; padding:14px 24px; cursor:pointer; font-weight:700}
-  .btn[disabled]{background:#9ca3af; cursor:not-allowed}
+  .filename{display:block;color:var(--muted);margin-top:8px;min-height:20px}
+  .btn{background:var(--dark);color:#fff;border:none;border-radius:12px;padding:14px 24px;cursor:pointer;font-weight:700}
+  .btn[disabled]{background:#9ca3af;cursor:not-allowed}
   .btn:not([disabled]):hover{background:var(--accent1)}
-  /* KPI/차트 */
-  .summary-grid{display:grid; grid-template-columns:1.1fr .9fr .9fr; gap:16px; align-items:stretch}
-  .kpi{border:1px solid var(--line); border-radius:16px; padding:18px; display:flex; flex-direction:column; justify-content:center}
-  .kpi h3{margin:0; color:var(--muted); font-size:14px}
-  .kpi .big{font-size:40px; font-weight:900; line-height:1.1; letter-spacing:-.5px}
-  .kpi .small{color:#374151; margin-top:8px; font-size:13px}
-  .charts{display:flex; gap:24px; justify-content:center; flex-wrap:wrap}
-  .chart-box{width:260px; text-align:center}
-  canvas{width:100%; height:auto}
-  /* 테이블 */
-  table{width:100%; border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--line); padding:8px; text-align:center; font-size:.92rem}
-  th{background:#f3f4f6; position:sticky; top:0}
-  /* 안내사항의 2줄 간격 넓히기 */
+  .summary-grid{display:grid;grid-template-columns:1.1fr .9fr .9fr;gap:16px;align-items:stretch}
+  .kpi{border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;justify-content:center}
+  .kpi h3{margin:0;color:var(--muted);font-size:14px}
+  .kpi .big{font-size:40px;font-weight:900;line-height:1.1;letter-spacing:-.5px}
+  .kpi .small{color:#374151;margin-top:8px;font-size:13px}
+  .charts{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .chart-box{width:260px;text-align:center}
+  canvas{width:100%;height:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{border-bottom:1px solid var(--line);padding:8px;text-align:center;font-size:.92rem}
+  th{background:#f3f4f6;position:sticky;top:0}
   .guide-tight p + p{margin-top:10px}
-  .guide-spaced .line{margin:8px 0} /* 요청: 두 줄 간격 조금 더 벌림 */
-  /* 상단 고정 보정 */
-  .spacer{height:0}
-  @media (max-width: 900px){
-    .summary-grid{grid-template-columns:1fr}
-  }
+  .guide-spaced .line{margin:8px 0}
+  .toast{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.95;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 </style>
 </head>
 <body>
   <header>ATEC 인사관리(근태) 프로그램</header>
 
-  <!-- 상단 고정 스텝 네비게이션 -->
   <div class="topbar">
     <div class="stepper" id="stepper">
       <div class="step active" data-target="1"><div class="num">1</div><div>업로드</div></div>
@@ -87,7 +62,6 @@
       <div class="step" data-target="3"><div class="num">3</div><div>세부내역</div></div>
     </div>
   </div>
-  <div class="spacer"></div>
 
   <main>
     <!-- 1페이지 -->
@@ -108,13 +82,11 @@
         <h2>데이터 업로드</h2>
         <div class="upload">
           <div class="upload-card">
-            <!-- 라벨명 수정: (.xlsx) 표기 제거 -->
             <label class="pick" for="fileAtt">근태 RAW 업로드</label>
             <input type="file" id="fileAtt" accept=".xlsx,.xls,.xlsm,.csv" />
             <span class="filename" id="nameAtt">선택된 파일 없음</span>
           </div>
           <div class="upload-card">
-            <!-- 라벨명 수정: (.xlsx) 표기 제거 -->
             <label class="pick" for="fileWage">통상시급 업로드</label>
             <input type="file" id="fileWage" accept=".xlsx,.xls,.xlsm,.csv" />
             <span class="filename" id="nameWage">선택된 파일 없음</span>
@@ -179,38 +151,45 @@
     </section>
   </main>
 
-  <!-- 외부 CDN: SheetJS + Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <div id="toast" class="toast" style="display:none"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    // ===== 스텝 네비 & 페이지 전환 =====
-    const pages=[page1,page2,page3];
-    const steps=[...document.querySelectorAll('.stepper .step')];
+    // ---- helpers ----
+    const $ = (id) => document.getElementById(id);
+    const showToast = (msg) => { const t=$('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', 2200); };
+
+    const pageEls = [ $('page1'), $('page2'), $('page3') ];
+    const stepEls = [...document.querySelectorAll('.stepper .step')];
 
     function gotoStep(n){
-      // step active 상태
-      steps.forEach(s=>s.classList.remove('active'));
-      steps[n-1].classList.add('active');
-      // page 전환(사르르 효과)
-      pages.forEach(p=>{p.classList.remove('show'); p.style.display='none';});
-      const target=pages[n-1];
+      stepEls.forEach(s=>s.classList.remove('active'));
+      stepEls[n-1].classList.add('active');
+      pageEls.forEach(p=>{ p.classList.remove('show'); p.style.display='none'; });
+      const target = pageEls[n-1];
       target.style.display='block';
       requestAnimationFrame(()=>target.classList.add('show'));
-      // 스크롤 보정
-      window.scrollTo({top:0, behavior:'smooth'});
+      window.scrollTo({top:0,behavior:'smooth'});
     }
-    steps.forEach(s=>{
-      s.addEventListener('click',()=>{
-        const n=Number(s.dataset.target);
-        gotoStep(n);
-      });
-    });
+    stepEls.forEach(s=>s.addEventListener('click',()=>gotoStep(Number(s.dataset.target))));
 
-    // ===== 파일 업로드 처리 =====
+    // ---- elements (explicit binding) ----
+    const totalApplied = $('totalApplied');
+    const totalWork    = $('totalWork');
+    const totalOver    = $('totalOver');
+    const totalHoliday = $('totalHoliday');
+    const overPayEl    = $('overPay');
+    const holidayPayEl = $('holidayPay');
+    const totalPayEl   = $('totalPay');
+    const tblStatus    = $('tblStatus');
+    const tblSummary   = $('tblSummary');
+    const tblNext      = $('tblNext');
+    const startSimBtn  = $('startSim');
+
+    // ---- upload handling ----
     let okAtt=false, okWage=false; let attRows=[], wageRows=[];
-    const date21=new Date(new Date().getFullYear(), new Date().getMonth(), 21);
     const REQUIRED=["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"];
+    const date21 = new Date(new Date().getFullYear(), new Date().getMonth(), 21);
 
     function hourMod24(t){ return t - 24*Math.floor(t/24); }
     function parseTime(s){
@@ -265,8 +244,7 @@
     }
 
     function attachPicker(inputId, nameId, onOk){
-      const inp=document.getElementById(inputId);
-      const name=document.getElementById(nameId);
+      const inp=$(inputId), name=$(nameId);
       const lab=document.querySelector(`label[for="${inputId}"]`);
       inp.addEventListener('change', async (e)=>{
         const f=e.target.files[0];
@@ -279,17 +257,19 @@
           lab.classList.remove('flash'); void lab.offsetWidth; lab.classList.add('flash');
           onOk(true, rows);
         } catch(err){
-          alert('파일 파싱 실패: '+err.message);
+          showToast('파일 파싱 실패: '+err.message);
           name.textContent='선택된 파일 없음'; onOk(false);
         } finally { updateStartBtn(); }
       });
     }
-    function updateStartBtn(){ startSim.disabled=!(okAtt && okWage); }
-    attachPicker('fileAtt','nameAtt', (ok, rows)=>{ okAtt=!!ok; attRows= ok? rows: []; });
-    attachPicker('fileWage','nameWage', (ok, rows)=>{ okWage=!!ok; wageRows= ok? rows: []; });
+    function updateStartBtn(){ startSimBtn.disabled=!(okAtt && okWage); }
 
-    // ===== 시뮬레이션(간단 버전: 기존 로직 요약) =====
+    attachPicker('fileAtt','nameAtt',(ok,rows)=>{ okAtt=!!ok; attRows= ok? rows: []; });
+    attachPicker('fileWage','nameWage',(ok,rows)=>{ okWage=!!ok; wageRows= ok? rows: []; });
+
+    // ---- processing ----
     let dfStatus=[], dfSummary=[], dfNext=[];
+
     async function processAttendance(){
       dfStatus=[]; dfSummary=[]; dfNext=[];
       const agg={};
@@ -297,23 +277,37 @@
 
       if(!attRows.length) throw new Error('근태 RAW 데이터가 비었습니다.');
       const cols=Object.keys(attRows[0]||{});
-      if(!["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"].every(r=>cols.includes(r)))
-        throw new Error('필수 헤더 누락: 신청시간, 근무자 부서, 근무자, 근무일, 근무유형, 종결일자, 상태');
+      if(!REQUIRED.every(r=>cols.includes(r)))
+        throw new Error('필수 헤더 누락(승인목록): '+REQUIRED.join(', '));
 
       for(const r of attRows){
         if(String(r['상태']||'').includes('반려')) continue;
         const raw=String(r['신청시간']||'');
         let closeDate=r['종결일자']? new Date(r['종결일자']):null;
+
         if(!raw.includes('~')){ if(closeDate && closeDate>=date21) dfNext.push(r); continue; }
+
         let [s,e]=raw.split('~').map(x=>x.trim());
-        let sh=parseTime(s), eh=parseTime(e); if(sh<0||eh<0){ if(closeDate && closeDate>=date21) dfNext.push(r); continue; }
+        let sh=parseTime(s), eh=parseTime(e);
+        if(sh<0||eh<0){ if(closeDate && closeDate>=date21) dfNext.push(r); continue; }
         if(eh<sh) eh+=24;
-        const work=eh-sh; const brk=Math.floor(work/5); const applied=work-brk;
+
+        const work=eh-sh;
+        const brk=Math.floor(work/5); // 5h당 1h
+        const applied=work-brk;
 
         if(closeDate && closeDate<date21){
-          dfStatus.push({순번:null,부서:r['근무자 부서'],이름:r['근무자'],근무일자:r['근무일'],근무유형:r['근무유형'],근무시작시간:fmtHM(sh),근무종료시간:fmtHM(eh),근무시간:+work.toFixed(2),휴게시간:+brk.toFixed(2),적용시간:+applied.toFixed(2),정수:ceilHalf(applied)});
-          const name=String(r['근무자']||'').replace('(IT)','').trim(); const dept=r['근무자 부서']; const ty=String(r['근무유형']||'').toLowerCase(); ensure(name,dept);
+          dfStatus.push({
+            순번:null,부서:r['근무자 부서'],이름:r['근무자'],근무일자:r['근무일'],근무유형:r['근무유형'],
+            근무시작시간:fmtHM(sh),근무종료시간:fmtHM(eh),근무시간:+work.toFixed(2),
+            휴게시간:+brk.toFixed(2),적용시간:+applied.toFixed(2),정수:ceilHalf(applied)
+          });
+
+          const name=String(r['근무자']||'').replace('(IT)','').trim();
+          const dept=r['근무자 부서']; const ty=String(r['근무유형']||'').toLowerCase();
+          ensure(name,dept);
           const A=agg[name]; A.근무시간+=work; A.휴게시간+=brk; A.적용시간+=applied;
+
           let effStart=sh+brk; if(effStart>eh) effStart=eh;
           for(let t=effStart; t<eh-1e-6; t+=0.25){
             const hod=hourMod24(t); const worked=t-effStart;
@@ -325,12 +319,18 @@
               else { if(hod>=6&&hod<22) A.휴일연장+=0.25; else A.휴일연장야간+=0.25; }
             }
           }
-        } else { dfNext.push(r); }
+        } else {
+          dfNext.push(r);
+        }
       }
       dfStatus.forEach((r,i)=> r.순번=i+1);
-      dfSummary=Object.values(agg).map((A,i)=>({순번:i+1,부서:A.부서,이름:A.이름,근무시간:+A.근무시간.toFixed(2),휴게시간:+A.휴게시간.toFixed(2),적용시간:+A.적용시간.toFixed(2),평일연장:+A.평일연장.toFixed(2),평일야간:+A.평일야간.toFixed(2),휴일일반:+A.휴일일반.toFixed(2),휴일연장:+A.휴일연장.toFixed(2),휴일야간:+A.휴일야간.toFixed(2),휴일연장야간:+A.휴일연장야간.toFixed(2)}));
+      dfSummary=Object.values(agg).map((A,i)=>({
+        순번:i+1,부서:A.부서,이름:A.이름,근무시간:+A.근무시간.toFixed(2),휴게시간:+A.휴게시간.toFixed(2),적용시간:+A.적용시간.toFixed(2),
+        평일연장:+A.평일연장.toFixed(2),평일야간:+A.평일야간.toFixed(2),휴일일반:+A.휴일일반.toFixed(2),휴일연장:+A.휴일연장.toFixed(2),
+        휴일야간:+A.휴일야간.toFixed(2),휴일연장야간:+A.휴일연장야간.toFixed(2)
+      }));
 
-      // 간이 수당(통상시급이 있으면 계산)
+      // 통상시급 수당 계산(있을 때)
       if(wageRows && wageRows.length){
         const cols2=Object.keys(wageRows[0]);
         const dcol=cols2.includes('부서')?'부서':(cols2[1]||cols2[0]);
@@ -338,7 +338,8 @@
         const wcol=cols2.includes('통상시급')?'통상시급':(cols2.includes('기본시급')?'기본시급':(cols2[cols2.length-1]));
         const map=new Map(); wageRows.forEach(r=>{ const d=String(r[dcol]||'').trim(); const n=String(r[ncol]||'').trim(); const w=Number(r[wcol]); if(n) map.set(`${d}|${n}`, isNaN(w)?0:w); });
         const mult={평일연장:1.5, 평일야간:2.0, 휴일일반:1.5, 휴일연장:2.0, 휴일야간:2.0, 휴일연장야간:2.5};
-        dfSummary=dfSummary.map(r=>{ const key=`${r['부서']}|${r['이름']}`; const base=map.has(key)?map.get(key):0;
+        dfSummary=dfSummary.map(r=>{
+          const key=`${r['부서']}|${r['이름']}`; const base=map.has(key)?map.get(key):0;
           const N=Math.ceil(base*mult.평일연장*toNum(r['평일연장']));
           const O=Math.ceil(base*mult.평일야간*toNum(r['평일야간']));
           const P=Math.ceil(base*mult.휴일일반*toNum(r['휴일일반']));
@@ -350,6 +351,15 @@
       }
     }
 
+    function drawDonut(canvasId,percent,amount,color){
+      const c=$(canvasId); const ctx=c.getContext('2d');
+      const dpi=window.devicePixelRatio||1; const W=260,H=260; c.width=W*dpi; c.height=H*dpi; c.style.width=W+'px'; c.style.height=H+'px'; ctx.scale(dpi,dpi);
+      const cx=W/2,cy=H/2,r=100; ctx.lineWidth=26; ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI); ctx.stroke();
+      ctx.strokeStyle=color; ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+2*Math.PI*Math.max(0,Math.min(100,percent))/100); ctx.stroke();
+      ctx.fillStyle='#111827'; ctx.font='700 22px Pretendard, Noto Sans KR, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText((percent||0).toFixed(1)+'%',cx,cy-10);
+      ctx.fillStyle='#6b7280'; ctx.font='600 13px Pretendard, Noto Sans KR, sans-serif'; ctx.fillText((amount||0).toLocaleString()+' 원',cx,cy+16);
+    }
+
     function showResult(){
       const workTotal=sum(dfStatus,'근무시간');
       const appliedTotal=sum(dfStatus,'적용시간');
@@ -359,42 +369,33 @@
       const holPay=sum(dfSummary,'휴일수당'); const totalPay=overPay+holPay;
 
       totalApplied.textContent=appliedTotal.toFixed(1)+'h';
-      totalWork.textContent=workTotal.toFixed(1)+'h';
-      totalOver.textContent=overHours.toFixed(1)+'h';
+      totalWork.textContent   =workTotal.toFixed(1)+'h';
+      totalOver.textContent   =overHours.toFixed(1)+'h';
       totalHoliday.textContent=holHours.toFixed(1)+'h';
-      overPayEl.textContent=(overPay||0).toLocaleString();
+      overPayEl.textContent   =(overPay||0).toLocaleString();
       holidayPayEl.textContent=(holPay||0).toLocaleString();
-      totalPayEl.textContent=(totalPay||0).toLocaleString();
+      totalPayEl.textContent  =(totalPay||0).toLocaleString();
 
-      drawDonut('chartOver', appliedTotal? (overHours/appliedTotal*100):0, overPay, '#ef4444');
-      drawDonut('chartHoliday', appliedTotal? (holHours/appliedTotal*100):0, holPay, '#2563eb');
+      drawDonut('chartOver',   appliedTotal? (overHours/appliedTotal*100):0, overPay, '#ef4444');
+      drawDonut('chartHoliday',appliedTotal? (holHours/appliedTotal*100):0, holPay, '#2563eb');
 
-      renderTable(tblStatus, dfStatus);
+      renderTable(tblStatus,  dfStatus);
       renderTable(tblSummary, dfSummary);
-      renderTable(tblNext, dfNext);
+      renderTable(tblNext,    dfNext);
 
-      // 스텝 이동: 2 리포트로
       gotoStep(2);
     }
 
-    const overPayEl=document.getElementById('overPay');
-    const holidayPayEl=document.getElementById('holidayPay');
-    const totalPayEl=document.getElementById('totalPay');
-
-    function drawDonut(canvasId,percent,amount,color){
-      const c=document.getElementById(canvasId); const ctx=c.getContext('2d');
-      const dpi=window.devicePixelRatio||1; const W=260,H=260; c.width=W*dpi; c.height=H*dpi; c.style.width=W+'px'; c.style.height=H+'px'; ctx.scale(dpi,dpi);
-      const cx=W/2,cy=H/2,r=100; ctx.lineWidth=26; ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI); ctx.stroke();
-      ctx.strokeStyle=color; ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+2*Math.PI*Math.max(0,Math.min(100,percent))/100); ctx.stroke();
-      ctx.fillStyle='#111827'; ctx.font='700 22px Pretendard, Noto Sans KR, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText((percent||0).toFixed(1)+'%',cx,cy-10);
-      ctx.fillStyle='#6b7280'; ctx.font='600 13px Pretendard, Noto Sans KR, sans-serif'; ctx.fillText((amount||0).toLocaleString()+' 원',cx,cy+16);
-    }
-
-    // 버튼/이벤트
-    function updateStartBtn(){ startSim.disabled=!(okAtt && okWage); }
-    startSim.addEventListener('click', async ()=>{
-      try{ await processAttendance(); showResult(); }
-      catch(err){ alert('시뮬레이션 실패: '+err.message); console.error(err); }
+    // start button
+    startSimBtn.addEventListener('click', async ()=>{
+      try{
+        await processAttendance();
+        showResult();
+        showToast('시뮬레이션 완료');
+      }catch(err){
+        showToast('시뮬레이션 실패: '+err.message);
+        console.error(err);
+      }
     });
   </script>
 </body>
