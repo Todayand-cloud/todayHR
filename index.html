@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ATEC 인사관리(근태) 프로그램 · 통합본</title>
+<title>ATEC 인사관리(근태) 프로그램 · 통합본(리포트 개편)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <style>
   :root{
     --bg:#f6f8fb;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;
@@ -48,12 +49,16 @@
   .summary-grid{display:grid;grid-template-columns:1.1fr .9fr .9fr;gap:16px;align-items:stretch}
   .kpi{border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;justify-content:center}
   .kpi h3{margin:0;color:var(--muted);font-size:14px}
-  .kpi .big{font-size:40px;font-weight:900;line-height:1.1;letter-spacing:-.5px}
-  .kpi .small{color:#374151;margin-top:8px;font-size:13px}
-  .compare{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
-  .delta{border:1px dashed var(--line);border-radius:12px;padding:10px;text-align:center;font-size:13px;color:#374151}
+  .kpi .line{margin-top:6px;color:#111827;font-weight:800}
+  .kpi .line small{color:#6b7280;font-weight:600}
+  .totalPay{font-size:42px;font-weight:900;letter-spacing:-.5px}
+
+  .compare{display:grid;grid-template-columns:1fr;gap:6px;margin-top:12px}
+
   .chart-row{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
-  .chart-box{width:280px;text-align:center}
+  .chart-box{width:320px;text-align:center}
+  .chart-title{margin:0 0 6px 0;font-weight:800}
+  .chart-foot{margin:.5rem 0 0;color:#374151;font-size:14px;line-height:1.4}
   canvas{width:100%;height:auto}
 
   table{width:100%;border-collapse:collapse}
@@ -164,26 +169,28 @@
 
       <div class="card">
         <div class="summary-grid">
+          <!-- 총 적용시간 -->
           <div class="kpi">
             <h3>총 적용시간</h3>
-            <div class="big" id="appliedNow">0.0h</div>
-            <div class="small">전월 대비: <strong id="appliedDelta">0.0h (0.0%)</strong></div>
+            <div class="line" id="appliedLine">전월 대비: 0.0h (0.0%) · 당월: 0.0h (전월 0.0h)</div>
           </div>
+          <!-- 시간외수당 -->
           <div class="kpi">
             <h3>시간외수당</h3>
-            <div class="big"><span id="overPayNow">0</span>원</div>
-            <div class="small">전월 대비: <strong id="overPayDelta">0 (0.0%)</strong></div>
+            <div class="line" id="overPayLine">전월 대비: 0 (0.0%) · 당월: 0 (전월 0)</div>
           </div>
+          <!-- 휴일수당 -->
           <div class="kpi">
             <h3>휴일수당</h3>
-            <div class="big"><span id="holPayNow">0</span>원</div>
-            <div class="small">전월 대비: <strong id="holPayDelta">0 (0.0%)</strong></div>
+            <div class="line" id="holPayLine">전월 대비: 0 (0.0%) · 당월: 0 (전월 0)</div>
           </div>
         </div>
 
         <div class="compare">
-          <div class="delta" id="sumPayBox" style="grid-column:1/-1">
-            총 수당(시간외+휴일) <b id="sumPayNow">0</b>원 · 전월 대비 <b id="sumPayDelta">0 (0.0%)</b>
+          <div style="border:1px dashed var(--line);border-radius:16px;padding:14px;text-align:center">
+            <div style="color:#6b7280;font-weight:700">총 수당(시간외 + 휴일)</div>
+            <div class="totalPay"><span id="sumPayNow">0</span>원</div>
+            <div class="muted">전월 대비: <b id="sumPayDelta">0 (0.0%)</b></div>
           </div>
         </div>
       </div>
@@ -191,12 +198,14 @@
       <div class="card">
         <div class="chart-row">
           <div class="chart-box">
-            <canvas id="donutHours"></canvas>
-            <p style="margin:.5rem 0 0;color:#374151">시간 비중(연장·휴일·기타)</p>
+            <h3 class="chart-title">전월 시간/수당 비율</h3>
+            <canvas id="donutPrev"></canvas>
+            <div class="chart-foot" id="footPrev">연장시간 0h · 휴일시간 0h · 총수당 0원</div>
           </div>
           <div class="chart-box">
-            <canvas id="donutPays"></canvas>
-            <p style="margin:.5rem 0 0;color:#374151">수당 비중(시간외·휴일)</p>
+            <h3 class="chart-title">당월 시간/수당 비율</h3>
+            <canvas id="donutNow"></canvas>
+            <div class="chart-foot" id="footNow">연장시간 0h · 휴일시간 0h · 총수당 0원</div>
           </div>
         </div>
       </div>
@@ -243,7 +252,7 @@
           <button class="btn btn-save" id="btnSaveNext">익월적용 저장</button>
           <button class="btn btn-merge" id="btnSaveAll">통합저장</button>
         </div>
-        <p class="muted" style="margin-top:10px">※ 통합저장은 **전월 데이터 보관을 하지 않습니다.** 전월 비교는 1페이지에서 <b>전월 자료</b> 수동 업로드로 지정하세요.</p>
+        <p class="muted" style="margin-top:10px">※ 통합저장은 **전월 데이터 보관을 하지 않습니다.** 전월 비교는 1페이지의 <b>[전월 자료]</b>로 수동 업로드하세요.</p>
       </div>
     </section>
   </main>
@@ -252,7 +261,7 @@
   <div class="modal" id="mapModal">
     <div class="panel">
       <h3 style="margin:0 0 8px 0" id="mapTitle">헤더 매핑</h3>
-      <p class="muted" style="margin-top:0">업로드한 파일의 열 이름을 아래 표준 항목에 연결하세요.</p>
+      <p class="muted" style="margin-top:0">업로드 파일 열 이름을 표준 항목에 연결하세요.</p>
       <div class="grid-map" id="mapGrid"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
         <button class="btn" id="btnMapCancel" style="background:#6b7280">취소</button>
@@ -265,6 +274,7 @@
 
 <script>
 /* ===== 공통 유틸 ===== */
+Chart.register(ChartDataLabels);
 const $=(id)=>document.getElementById(id);
 const showToast=(m)=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200);};
 const steps=[...document.querySelectorAll('.stepper .step')];
@@ -282,7 +292,7 @@ steps.forEach(s=>s.addEventListener('click',()=>gotoStep(Number(s.dataset.target
 const REQUIRED_ATT=["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"];
 const REQUIRED_WAGE=["부서","이름","통상시급"];
 
-/* ===== 업로드 & 헤더 매핑 (당월) ===== */
+/* ===== 업로드 & 헤더 매핑 ===== */
 let attRowsRaw=[], wageRowsRaw=[];
 let attRows=[], wageRows=[];
 let okAtt=false, okWage=false;
@@ -294,7 +304,6 @@ function parseExcel(file, preferSheetNames=[]){
       try{
         const data=new Uint8Array(e.target.result);
         const wb=XLSX.read(data,{type:'array'});
-        // 우선순위 시트 선택
         let sheet=null;
         for(const name of preferSheetNames){
           if(wb.Sheets[name]){ sheet=wb.Sheets[name]; break; }
@@ -407,11 +416,11 @@ function attachPicker(inputId, nameId, type){
 }
 attachPicker('fileAtt','nameAtt','att');
 attachPicker('fileWage','nameWage','wage');
-
 function updateStartBtn(){ $('startSim').disabled=!(okAtt && okWage); }
 
 /* ===== 전월 업로드 (개별/통합) ===== */
-let prevAttRows=null, prevWageRows=null, prevMetrics=null;
+let prevAttRows=null, prevWageRows=null;
+let prevMetrics=null; // {appliedTotal, overPay, holPay, totalPay, overHours, holHours, from}
 
 function updatePrevStatusTexts(){
   $('prevAttStatus').textContent  = '전월 근태 RAW: '  + (prevAttRows ? '업로드됨' : '미업로드');
@@ -436,18 +445,23 @@ function attachPrevPicker(inputId, nameId, kind){
     try{
       if(kind==='prev_all'){
         const {wb}=await parseExcel(f, ['근태정리']);
-        let prevSummary=[];
+        // 근태정리 우선
+        let rowsSum=[];
         if(wb.Sheets['근태정리']){
-          prevSummary = XLSX.utils.sheet_to_json(wb.Sheets['근태정리'],{defval:null});
+          rowsSum = XLSX.utils.sheet_to_json(wb.Sheets['근태정리'],{defval:null});
         }else{
-          prevSummary = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
+          rowsSum = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
         }
         const get=(arr,k)=>arr.reduce((a,b)=>a+(Number(b[k])||0),0);
+        const overH = get(rowsSum,'평일연장') + get(rowsSum,'평일야간');
+        const holH  = get(rowsSum,'휴일일반') + get(rowsSum,'휴일연장') + get(rowsSum,'휴일야간') + get(rowsSum,'휴일연장야간');
         prevMetrics={
-          appliedTotal:get(prevSummary,'적용시간')||0,
-          overPay:get(prevSummary,'시간외수당')||0,
-          holPay:get(prevSummary,'휴일수당')||0,
-          totalPay:(get(prevSummary,'시간외수당')||0)+(get(prevSummary,'휴일수당')||0),
+          appliedTotal:get(rowsSum,'적용시간')||0,
+          overPay:get(rowsSum,'시간외수당')||0,
+          holPay:get(rowsSum,'휴일수당')||0,
+          totalPay:(get(rowsSum,'시간외수당')||0)+(get(rowsSum,'휴일수당')||0),
+          overHours:overH||0,
+          holHours:holH||0,
           from:f.name
         };
         label.classList.remove('flash'); void label.offsetWidth; label.classList.add('flash');
@@ -510,6 +524,8 @@ function tryBuildPrevFromParts(){
       overPay: prevResult.metrics.overPay||0,
       holPay: prevResult.metrics.holPay||0,
       totalPay: (prevResult.metrics.overPay||0)+(prevResult.metrics.holPay||0),
+      overHours: prevResult.metrics.overHours||0,
+      holHours: prevResult.metrics.holHours||0,
       from: prevWageRows ? '전월 개별 업로드(근태RAW+통상시급)' : '전월 개별 업로드(근태RAW만: 수당 0으로 비교)'
     };
     updatePrevBadge(); updatePrevStatusTexts();
@@ -622,29 +638,52 @@ function process(att, wage){
   };
 }
 
-/* ===== 리포트 ===== */
-const appliedNow=$('appliedNow'), overPayNow=$('overPayNow'), holPayNow=$('holPayNow');
-const appliedDelta=$('appliedDelta'), overPayDelta=$('overPayDelta'), holPayDelta=$('holPayDelta');
+/* ===== 리포트 렌더링 ===== */
+const appliedLine=$('appliedLine'), overPayLine=$('overPayLine'), holPayLine=$('holPayLine');
 const sumPayNow=$('sumPayNow'), sumPayDelta=$('sumPayDelta');
 
-const donutHours=$('donutHours'), donutPays=$('donutPays'), barHours=$('barHours'), barPays=$('barPays');
+const donutPrev=$('donutPrev'), donutNow=$('donutNow'), barHours=$('barHours'), barPays=$('barPays');
+const footPrev=$('footPrev'), footNow=$('footNow');
 
 function pctDelta(now, prev){
   const d=now-(prev||0);
   const p=(prev&&prev!==0)?(d/prev*100):0;
   const sign=d>0?'+':(d<0?'':'');
-  return { text:`${sign}${(d).toFixed(1)}h (${p.toFixed(1)}%)` };
+  return { d, p, text:`${sign}${(d).toFixed(1)}h (${p.toFixed(1)}%)`, money: false };
 }
 function moneyDelta(now, prev){
   const d=now-(prev||0);
   const p=(prev&&prev!==0)?(d/prev*100):0;
   const sign=d>0?'+':(d<0?'':'');
-  return { text:`${sign}${d.toLocaleString()} (${p.toFixed(1)}%)` };
+  return { d, p, text:`${sign}${d.toLocaleString()} (${p.toFixed(1)}%)`, money: true };
 }
-function drawDoughnut(ctxRef, labels, data, colors){
+
+function drawDoughnutWithLabels(ctxRef, labels, data, colors){
   if(ctxRef._chart) ctxRef._chart.destroy();
-  ctxRef._chart=new Chart(ctxRef,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors}]},options:{plugins:{legend:{display:true,position:'bottom'}},cutout:'65%'}});
+  ctxRef._chart=new Chart(ctxRef,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors}]},
+    options:{
+      plugins:{
+        legend:{display:true,position:'bottom'},
+        datalabels:{
+          color:'#111',
+          font:{weight:'700'},
+          formatter:(v,ctx)=>{
+            // '기타'는 라벨 숨김
+            const label=ctx.chart.data.labels[ctx.dataIndex];
+            const total=ctx.dataset.data.reduce((a,b)=>a+(+b||0),0);
+            if(!total) return '';
+            const per=(v/total*100);
+            return (label==='기타'||per<3)? '' : per.toFixed(1)+'%';
+          }
+        }
+      },
+      cutout:'65%'
+    }
+  });
 }
+
 function drawBars(ctxRef, labels, now, prev, isMoney){
   if(ctxRef._chart) ctxRef._chart.destroy();
   ctxRef._chart=new Chart(ctxRef,{
@@ -657,32 +696,52 @@ function drawBars(ctxRef, labels, now, prev, isMoney){
       scales:{y:{ticks:{callback:(v)=>isMoney?Number(v).toLocaleString():v}}}}
   });
 }
+
 function renderReport(cur){
   const M=cur.metrics;
   const nowApplied=M.appliedTotal||0, nowOverPay=M.overPay||0, nowHolPay=M.holPay||0, nowSumPay=nowOverPay+nowHolPay;
-  const prevApplied=prevMetrics?.appliedTotal||0, prevOverPay=prevMetrics?.overPay||0, prevHolPay=prevMetrics?.holPay||0, prevSumPay=prevOverPay+prevHolPay;
+  const nowOverH=M.overHours||0, nowHolH=M.holHours||0;
 
-  appliedNow.textContent=nowApplied.toFixed(1)+'h';
-  overPayNow.textContent=nowOverPay.toLocaleString();
-  holPayNow.textContent=nowHolPay.toLocaleString();
-  sumPayNow.textContent=nowSumPay.toLocaleString();
+  const prevApplied=prevMetrics?.appliedTotal||0;
+  const prevOverPay=prevMetrics?.overPay||0;
+  const prevHolPay=prevMetrics?.holPay||0;
+  const prevSumPay=prevOverPay+prevHolPay;
+  const prevOverH=prevMetrics?.overHours||0;
+  const prevHolH=prevMetrics?.holHours||0;
 
-  appliedDelta.textContent=pctDelta(nowApplied,prevApplied).text;
-  overPayDelta.textContent=moneyDelta(nowOverPay,prevOverPay).text;
-  holPayDelta.textContent=moneyDelta(nowHolPay,prevHolPay).text;
-  sumPayDelta.textContent=moneyDelta(nowSumPay,prevSumPay).text;
+  // KPI 텍스트(요청 포맷)
+  const dApplied=pctDelta(nowApplied, prevApplied);
+  appliedLine.textContent = `전월 대비: ${dApplied.text} · 당월: ${nowApplied.toFixed(1)}h (전월 ${prevApplied.toFixed(1)}h)`;
 
-  const otherH=Math.max(0, nowApplied-(M.overHours+M.holHours));
-  drawDoughnut(donutHours,['연장시간','휴일시간','기타'],[M.overHours,M.holHours,otherH],['#ef4444','#2563eb','#e5e7eb']);
-  drawDoughnut(donutPays,['시간외수당','휴일수당'],[nowOverPay,nowHolPay],['#ef4444','#2563eb']);
+  const dOver=moneyDelta(nowOverPay, prevOverPay);
+  overPayLine.textContent = `전월 대비: ${dOver.text} · 당월: ${nowOverPay.toLocaleString()} (전월 ${prevOverPay.toLocaleString()})`;
 
+  const dHol=moneyDelta(nowHolPay, prevHolPay);
+  holPayLine.textContent = `전월 대비: ${dHol.text} · 당월: ${nowHolPay.toLocaleString()} (전월 ${prevHolPay.toLocaleString()})`;
+
+  // 총수당 강조
+  const dSum=moneyDelta(nowSumPay, prevSumPay);
+  sumPayNow.textContent = nowSumPay.toLocaleString();
+  sumPayDelta.textContent = dSum.text;
+
+  // 도넛(전월/당월) - 연장/휴일/기타
+  const nowOtherH=Math.max(0, nowApplied-(nowOverH+nowHolH));
+  const prevOtherH=Math.max(0, prevApplied-(prevOverH+prevHolH));
+
+  drawDoughnutWithLabels(donutPrev, ['연장시간','휴일시간','기타'], [prevOverH, prevHolH, prevOtherH], ['#ef4444','#2563eb','#e5e7eb']);
+  drawDoughnutWithLabels(donutNow,  ['연장시간','휴일시간','기타'], [nowOverH,  nowHolH,  nowOtherH],  ['#ef4444','#2563eb','#e5e7eb']);
+
+  footPrev.textContent = `연장시간 ${prevOverH.toFixed(1)}h · 휴일시간 ${prevHolH.toFixed(1)}h · 총수당 ${prevSumPay.toLocaleString()}원`;
+  footNow.textContent  = `연장시간 ${nowOverH.toFixed(1)}h · 휴일시간 ${nowHolH.toFixed(1)}h · 총수당 ${nowSumPay.toLocaleString()}원`;
+
+  // 막대 비교(시간/수당)
   drawBars(barHours,['적용시간(h)'],[nowApplied],[prevApplied],false);
   drawBars(barPays,['시간외수당(원)','휴일수당(원)','총수당(원)'],[nowOverPay,nowHolPay,nowSumPay],[prevOverPay,prevHolPay,prevSumPay],true);
 
   updatePrevBadge();
 }
 
-/* ===== 테이블 ===== */
+/* ===== 테이블 렌더링 ===== */
 const tblStatus=$('tblStatus'), tblSummary=$('tblSummary'), tblNext=$('tblNext');
 function renderTable(el, rows){
   if(!rows||!rows.length){ el.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
@@ -692,7 +751,7 @@ function renderTable(el, rows){
   el.innerHTML=thead+tbody;
 }
 
-/* ===== 시뮬레이션 버튼 ===== */
+/* ===== 시뮬레이션 ===== */
 let currentResult=null;
 $('startSim').addEventListener('click',()=>{
   try{
@@ -710,7 +769,11 @@ $('startSim').addEventListener('click',()=>{
 
 /* ===== 전월 초기화 ===== */
 $('btnPrevReset').addEventListener('click',()=>{
-  prevMetrics=null; updatePrevBadge(); if(currentResult) renderReport(currentResult);
+  prevAttRows=null; prevWageRows=null; prevMetrics=null;
+  $('prevAllStatus').textContent='전월 통합자료: 미업로드';
+  updatePrevStatusTexts();
+  updatePrevBadge();
+  if(currentResult) renderReport(currentResult);
   showToast('전월 데이터가 초기화되었습니다.');
 });
 
@@ -747,6 +810,14 @@ $('btnSaveAll').addEventListener('click',()=>{
   ]);
   showToast('통합 저장 완료');
 });
+
+/* ===== 전월 업로드 이벤트 연결 (마지막) ===== */
+function attachPrevEvents(){
+  attachPrevPicker('prevAll','prevAllName','prev_all');
+  attachPrevPicker('prevAtt','prevAttName','prev_att');
+  attachPrevPicker('prevWage','prevWageName','prev_wage');
+}
+attachPrevEvents();
 </script>
 </body>
 </html>
