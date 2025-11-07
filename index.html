@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ATEC 인사관리(근태) · 통합본 (전월 RAW/통합 업로드 지원)</title>
+<title>ATEC 인사관리(근태) · 통합본 (전월 RAW/통합 + 헤더매핑)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -27,13 +27,13 @@
   .chev{flex:1;height:2px;background:linear-gradient(90deg,#e5e7eb 0%,#c7d2fe 50%,#e5e7eb 100%);min-width:40px}
 
   main{max-width:1200px;margin:18px auto;padding:0 16px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.05);padding:20px;margin:18px 0}
-
   .page{display:none;opacity:0;transform:translateY(6px);transition:opacity .28s ease,transform .28s ease}
   .page.show{display:block;opacity:1;transform:none}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.05);padding:20px;margin:18px 0}
 
-  .upload{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  .upload .group{border:1px dashed var(--line);border-radius:12px;padding:16px;background:#fbfdff}
+  /* 업로드 세로 배치 */
+  .upload-col{display:flex;flex-direction:column;gap:16px}
+  .group{border:1px dashed var(--line);border-radius:12px;padding:16px;background:#fbfdff}
   .group h3{margin:0 0 8px 0;font-size:16px}
   .picker{display:flex;gap:10px;flex-wrap:wrap}
   input[type=file]{display:none}
@@ -48,7 +48,7 @@
   .kpi{border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}
   .kpi h4{margin:0;color:var(--muted);font-size:14px}
   .kpi .big{font-size:26px;font-weight:800;margin-top:4px}
-  .kpi .small{font-size:13px;color:#374151;line-height:1.7;margin-top:4px}
+  .kpi .small{font-size:13px;color:#374151;line-height:1.8;margin-top:4px}
 
   .chart-row{display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
   .chart-box{width:360px;max-width:44vw;text-align:center}
@@ -56,9 +56,17 @@
   .chart-box p{font-size:15px;font-weight:700;margin:.6rem 0 0}
 
   .sum-card h2{margin:0;font-size:22px}
-  .sum-meta{line-height:1.8;margin-top:6px}
+  .sum-meta{line-height:1.95;margin-top:6px}
 
   .toast{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.95;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);display:none}
+
+  /* 매핑 모달 */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:10000}
+  .panel{background:#fff;max-width:720px;width:92vw;border-radius:16px;box-shadow:0 16px 60px rgba(0,0,0,.35);padding:18px}
+  .grid-map{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cell{display:flex;align-items:center;gap:10px}
+  .cell label{min-width:180px;font-weight:700}
+  select{width:100%;padding:8px;border:1px solid var(--line);border-radius:10px}
 </style>
 </head>
 <body>
@@ -69,10 +77,6 @@
     <div class="step active" data-step="1"><div class="num">1</div>업로드</div>
     <div class="chev"></div>
     <div class="step" data-step="2"><div class="num">2</div>리포트</div>
-    <div class="chev"></div>
-    <div class="step" data-step="3"><div class="num">3</div>세부내역</div>
-    <div class="chev"></div>
-    <div class="step" data-step="4"><div class="num">4</div>데이터 저장</div>
   </div>
 </div>
 
@@ -88,7 +92,7 @@
 
     <div class="card">
       <h2 style="margin-top:0">데이터 업로드</h2>
-      <div class="upload">
+      <div class="upload-col">
         <!-- 당월 자료 -->
         <div class="group">
           <h3>당월 자료</h3>
@@ -126,8 +130,8 @@
 
         <!-- 실행 -->
         <div class="group">
-          <h3>실행</h3>
-          <p class="muted" style="margin-top:0">당월 자료 2개(근태 RAW, 통상시급) 업로드 후 시뮬레이션 가능</p>
+          <h3>시뮬레이션</h3>
+          <p class="muted" style="margin-top:0">당월 자료 2개(근태 RAW, 통상시급) 업로드 후 실행 가능합니다.</p>
           <button id="btnRun" class="btn" disabled>시뮬레이션 시작</button>
         </div>
       </div>
@@ -193,6 +197,19 @@
   </section>
 </main>
 
+<!-- 헤더 매핑 모달 (필요 시에만 표시) -->
+<div class="modal" id="mapModal">
+  <div class="panel">
+    <h3 id="mapTitle" style="margin:0 0 8px 0">헤더 매핑</h3>
+    <p class="muted" style="margin-top:0">업로드한 파일의 열 이름을 아래 표준 항목에 연결하세요.</p>
+    <div class="grid-map" id="mapGrid"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" id="btnMapCancel" style="background:#6b7280">취소</button>
+      <button class="btn" id="btnMapOk">매핑 완료</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
@@ -201,230 +218,251 @@ Chart.register(ChartDataLabels);
 /* ---------- 유틸 ---------- */
 const $=id=>document.getElementById(id);
 const showToast=(m)=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
-const number = v => { const n = Number(String(v).toString().replace(/[, ]/g,'')); return isNaN(n)?0:n; };
+const number = v => { const n = Number(String(v??'').toString().replace(/[, ]/g,'')); return isNaN(n)?0:n; };
 const hourMod24 = t => t - 24*Math.floor(t/24);
 function parseTime(s){
   if(s==null) return -1; let st=String(s).trim().replace(/\s+/g,'');
   st=st.replace('시',':').replace('분','');
   if(!st.includes(':')){
     if(!/^\d+$/.test(st)) return -1;
-    const n=parseInt(st,10); if(st.length<=2) return n; if(st.length<=4) return Math.floor(n/100)+(n%100)/60;
-    return -1;
+    const n=parseInt(st,10); if(st.length<=2) return n; if(st.length<=4) return Math.floor(n/100)+(n%100)/60; return -1;
   }
   let [h,m]=st.split(':'); h=parseInt(h,10); m=parseInt(m,10);
   if(isNaN(h)||isNaN(m)||m<0||m>=60) return -1; return h+m/60;
 }
 const ceilHalf=x=> Math.ceil(Number(x)/0.5)*0.5;
 const fmtHM=d=>{const h=Math.floor(d)%24;const m=Math.round((d-Math.floor(d))*60)%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
-const sumBy = (rows, keyArr) => rows.reduce((a,r)=> a + keyArr.reduce((s,k)=> s + number(r[k]),0), 0);
+const sum=(rows,key)=> rows.reduce((a,r)=> a + number(r[key]), 0);
+
+/* ---------- 헤더 매핑 ---------- */
+const REQUIRED_ATT=["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"];
+const REQUIRED_WAGE=["부서","이름","통상시급"];
+
+const SYN={
+ "신청시간":["신청시간","시간","근무시간대","근무신청시간","시작~종료","근무시간(신청)"],
+ "근무자 부서":["근무자 부서","부서","부서(팀)","부서명","소속"],
+ "근무자":["근무자","이름","성명","근무자명","사원명"],
+ "근무일":["근무일","일자","근무일자","날짜"],
+ "근무유형":["근무유형","유형","구분","근무구분"],
+ "종결일자":["종결일자","결재일자","승인일자","종결일","결재일"],
+ "상태":["상태","결재상태","승인상태"],
+ "부서":["부서","부서명","소속","부서(팀)"],
+ "이름":["이름","성명","사원명"],
+ "통상시급":["통상시급","기본시급","시급","통상 임금","통상임금"]
+};
+
+function guessMap(required, cols){
+  const m={}; required.forEach(k=>{
+    const l=cols.map(c=>c.toLowerCase());
+    const idx1=l.indexOf(k.toLowerCase());
+    if(idx1>-1){ m[k]=cols[idx1]; return; }
+    const alt=(SYN[k]||[]).map(s=>s.toLowerCase());
+    const idx2=l.findIndex(x=>alt.includes(x));
+    m[k]= idx2>-1? cols[idx2] : "";
+  }); return m;
+}
+
+function openMapper(title, required, cols){
+  return new Promise((resolve,reject)=>{
+    $('mapTitle').textContent=title;
+    const grid=$('mapGrid'); grid.innerHTML="";
+    const g=guessMap(required, cols);
+    required.forEach(k=>{
+      const wrap=document.createElement('div'); wrap.className='cell';
+      const lab=document.createElement('label'); lab.textContent=k;
+      const sel=document.createElement('select'); sel.dataset.key=k;
+      sel.appendChild(new Option('-- 열 선택 --',''));
+      cols.forEach(c=> sel.appendChild(new Option(c,c)));
+      sel.value=g[k]||"";
+      wrap.appendChild(lab); wrap.appendChild(sel);
+      grid.appendChild(wrap);
+    });
+    const modal=$('mapModal'); modal.style.display='flex';
+    $('btnMapCancel').onclick=()=>{ modal.style.display='none'; reject(new Error('매핑 취소')); };
+    $('btnMapOk').onclick=()=>{
+      const mapping={}; const selects=[...grid.querySelectorAll('select')];
+      for(const s of selects){ if(!s.value){ showToast('모든 항목을 매핑해 주세요.'); return; } mapping[s.dataset.key]=s.value; }
+      modal.style.display='none'; resolve(mapping);
+    };
+  });
+}
+
+function normalizeRows(rows, mapping){ return rows.map(r=>{ const o={}; for(const k in mapping){ o[k]=r[mapping[k]]; } return o; }); }
 
 /* ---------- 업로드 상태 ---------- */
 let curAttRows=[], curWageRows=[];
 let prevAttRows=[], prevWageRows=[];
-let prevMergedMetrics=null; // 통합자료에서 직접 뽑은 전월 메트릭
+let prevMergedMetrics=null;
 let resultNow=null, resultPrev=null;
 
-const REQUIRED_ATT=["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"];
-const REQUIRED_WAGE=["부서","이름","통상시급"];
-
-/* 파일 읽기 (선호 시트 우선) */
+/* 파일 읽기 */
 function readExcel(file, preferSheets=[]){
   return new Promise((resolve,reject)=>{
     const fr=new FileReader();
     fr.onload=e=>{
       try{
         const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-        let ws=null;
-        for(const n of preferSheets){ if(wb.Sheets[n]){ ws=wb.Sheets[n]; break; } }
+        let ws=null; for(const n of preferSheets){ if(wb.Sheets[n]){ ws=wb.Sheets[n]; break; } }
         if(!ws) ws=wb.Sheets[wb.SheetNames[0]];
         resolve({wb, rows:XLSX.utils.sheet_to_json(ws,{defval:null})});
       }catch(err){reject(err);}
-    };
-    fr.readAsArrayBuffer(file);
+    }; fr.readAsArrayBuffer(file);
   });
 }
 
 /* 버튼 라벨 깜빡임 */
 function flashLabel(forId){ const lab=document.querySelector(`label[for="${forId}"]`); if(!lab) return; lab.classList.remove('flash'); void lab.offsetWidth; lab.classList.add('flash'); }
 
-/* 파일 픽커 부착 (더블 오픈 방지: change 후 value 리셋) */
+/* 파일 픽커 (이중 팝업 방지) */
 function attachPicker(inputId, nameId, handler){
   const inp=$(inputId), name=$(nameId);
   inp.addEventListener('change', async (e)=>{
     const f=e.target.files && e.target.files[0]; if(!f){ name.textContent='선택된 파일 없음'; return; }
     name.textContent='분석 중…';
     try{ await handler(f, name, inputId); flashLabel(inputId); }
-    catch(err){ console.error(err); showToast('파싱 실패: '+err.message); name.textContent='파싱 실패'; }
-    finally{ e.target.value=''; } // 같은 파일 재선택 허용 & 이중 팝업 방지
-  }, {once:false});
+    catch(err){ console.error(err); showToast('실패: '+err.message); name.textContent='실패'; }
+    finally{ e.target.value=''; }
+  });
 }
 
 /* 당월 RAW */
 attachPicker('curAtt','curAttName', async (file, name)=>{
   const {rows}=await readExcel(file);
-  curAttRows=rows; name.textContent=`선택 완료 · ${file.name} (${rows.length}행)`; updateRunBtn();
+  const cols=Object.keys(rows[0]||{});
+  if(!REQUIRED_ATT.every(h=>cols.includes(h))){
+    const map=await openMapper('당월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
+    curAttRows = normalizeRows(rows, map);
+  }else curAttRows=rows;
+  name.textContent=`선택 완료 · ${file.name} (${curAttRows.length}행)`; updateRunBtn();
 });
+
 /* 당월 통상시급 */
 attachPicker('curWage','curWageName', async (file, name)=>{
   const {rows}=await readExcel(file);
-  curWageRows=rows; name.textContent=`선택 완료 · ${file.name} (${rows.length}행)`; updateRunBtn();
+  const cols=Object.keys(rows[0]||{});
+  if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
+    const map=await openMapper('당월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
+    curWageRows = normalizeRows(rows, map);
+  }else curWageRows=rows;
+  name.textContent=`선택 완료 · ${file.name} (${curWageRows.length}행)`; updateRunBtn();
 });
 
 /* 전월 RAW */
 attachPicker('prevAtt','prevAttName', async (file, name)=>{
   const {rows}=await readExcel(file);
-  prevAttRows=rows; prevMergedMetrics=null; name.textContent=`전월 근태RAW 선택 · ${file.name} (${rows.length}행)`; showToast('전월 RAW 로드됨 (전월 통합이 업로드되면 해당값이 우선 적용)');
+  const cols=Object.keys(rows[0]||{});
+  if(!REQUIRED_ATT.every(h=>cols.includes(h))){
+    const map=await openMapper('전월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
+    prevAttRows = normalizeRows(rows, map);
+  }else prevAttRows=rows;
+  prevMergedMetrics=null;
+  name.textContent=`전월 RAW 선택 · ${file.name} (${prevAttRows.length}행)`;
 });
 
 /* 전월 통상시급 */
 attachPicker('prevWage','prevWageName', async (file, name)=>{
   const {rows}=await readExcel(file);
-  prevWageRows=rows; prevMergedMetrics=null; name.textContent=`전월 통상시급 선택 · ${file.name} (${rows.length}행)`;
+  const cols=Object.keys(rows[0]||{});
+  if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
+    const map=await openMapper('전월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
+    prevWageRows = normalizeRows(rows, map);
+  }else prevWageRows=rows;
+  prevMergedMetrics=null;
+  name.textContent=`전월 통상시급 선택 · ${file.name} (${prevWageRows.length}행)`;
 });
 
-/* 전월 통합자료(권장) → 근태정리 시트 합계 규칙 */
-attachPicker('prevMerged','prevMergedName', async (file, name, forId)=>{
+/* 전월 통합자료(권장) */
+attachPicker('prevMerged','prevMergedName', async (file, name)=>{
   const {wb}=await readExcel(file, ['근태정리']);
   if(!wb.Sheets['근태정리']) throw new Error('근태정리 시트를 찾을 수 없습니다.');
   const rows=XLSX.utils.sheet_to_json(wb.Sheets['근태정리'],{defval:null});
 
-  // 소계 행 찾기(있으면 우선 사용)
-  const hasSubtotal = rows.find(r=> Object.values(r).some(v=> String(v).includes('소계')));
-  const sumCols = (keys)=> hasSubtotal
-      ? number(hasSubtotal[keys[0]]) + (keys[1]?number(hasSubtotal[keys[1]]):0) + (keys[2]?number(hasSubtotal[keys[2]]):0) + (keys[3]?number(hasSubtotal[keys[3]]):0)
-      : sumBy(rows, keys);
+  const subtotal = rows.find(r=> Object.values(r).some(v=> String(v).includes('소계')));
+  const sumCols=(keys)=> subtotal
+    ? keys.reduce((a,k)=> a + number(subtotal[k]), 0)
+    : rows.reduce((a,r)=> a + keys.reduce((s,k)=> s + number(r[k]),0), 0);
 
-  // 헤더 이름 기준 합계(열 문자에 의존하지 않음)
-  const overHours = sumCols(['평일연장','평일야간']);               // G+H
-  const holHours  = sumCols(['휴일일반','휴일연장','휴일야간','휴일연장야간']); // I~L
-  const overPay   = sumCols(['시간외수당']);                       // M 소계 또는 합
-  const holPay    = sumCols(['휴일수당']);                         // N 소계 또는 합
-  const appliedTotal = sumBy(rows, ['적용시간']) || (overHours+holHours); // 안전장치
+  const overHours = sumCols(['평일연장','평일야간']);
+  const holHours  = sumCols(['휴일일반','휴일연장','휴일야간','휴일연장야간']);
+  const overPay   = sumCols(['시간외수당']);
+  const holPay    = sumCols(['휴일수당']);
+  const appliedTotal = rows.reduce((a,r)=> a + number(r['적용시간']), 0) || (overHours+holHours);
 
-  prevMergedMetrics = {
-    appliedTotal, overHours, holHours,
-    overPay, holPay, totalPay: overPay + holPay,
-    from:file.name
-  };
-  // 통합 업로드가 들어오면 전월 RAW/WAGE는 무시(우선순위)
+  prevMergedMetrics = {appliedTotal,overHours,holHours,overPay,holPay,totalPay:overPay+holPay,from:file.name};
+  // 통합자료가 들어오면 전월 RAW/WAGE는 무시
   prevAttRows=[]; prevWageRows=[];
-  name.textContent=`전월 통합 지정 · ${file.name} (근태정리 ${rows.length}행)`;
-  showToast('전월 통합자료가 설정되었습니다.');
+  name.textContent=`전월 통합 지정 · ${file.name} (근태정리 ${rows.length}행)`; showToast('전월 통합자료가 설정되었습니다.');
 });
 
-/* ---------- 시뮬레이션 로직 (당월/전월 RAW 공통) ---------- */
-const date21 = new Date(new Date().getFullYear(), new Date().getMonth(), 21);
+/* ---------- 실행 버튼 ---------- */
+function updateRunBtn(){ $('btnRun').disabled = !(curAttRows.length && curWageRows.length); }
 
+/* ---------- 시뮬레이션 공통로직 ---------- */
 function process(attRows, wageRows){
   if(!attRows.length) throw new Error('근태 RAW가 비어있습니다.');
-  // 필수 헤더 대략 검증(헤더 매핑 UI는 생략: 실제 배포본에는 매핑 기능 삽입 가능)
-  const cols = Object.keys(attRows[0]||{});
-  const need = REQUIRED_ATT.every(h=> cols.includes(h));
-  if(!need) throw new Error('근태 RAW 필수 헤더 누락: ' + REQUIRED_ATT.join(', '));
-
-  // 집계
   const status=[], agg={};
   const ensure=(name,dept)=>{ if(!agg[name]) agg[name]={부서:dept,이름:name,근무시간:0,휴게시간:0,적용시간:0,평일연장:0,평일야간:0,휴일일반:0,휴일연장:0,휴일야간:0,휴일연장야간:0}; };
-
   for(const r of attRows){
     if(String(r['상태']||'').includes('반려')) continue;
-    const raw=String(r['신청시간']||'');
-    if(!raw.includes('~')) continue;
-
-    let [s,e]=raw.split('~').map(x=>x.trim());
-    let sh=parseTime(s), eh=parseTime(e);
-    if(sh<0||eh<0) continue;
-    if(eh<sh) eh+=24;
-
+    const raw=String(r['신청시간']||''); if(!raw.includes('~')) continue;
+    let [s,e]=raw.split('~').map(x=>x.trim()); let sh=parseTime(s), eh=parseTime(e); if(sh<0||eh<0) continue; if(eh<sh) eh+=24;
     const work=eh-sh, brk=Math.floor(work/5), applied=work-brk;
-
-    status.push({부서:r['근무자 부서'],이름:r['근무자'],근무일자:r['근무일'],
-      근무유형:r['근무유형'],근무시작시간:fmtHM(sh),근무종료시간:fmtHM(eh),
-      근무시간:+work.toFixed(2),휴게시간:+brk.toFixed(2),적용시간:+applied.toFixed(2),정수:ceilHalf(applied)
-    });
-
-    const name=String(r['근무자']||'').replace('(IT)','').trim();
-    if(!name) continue; const dept=r['근무자 부서']; const ty=String(r['근무유형']||'').toLowerCase();
-    ensure(name,dept);
-    const A=agg[name]; A.근무시간+=work; A.휴게시간+=brk; A.적용시간+=applied;
-
+    status.push({부서:r['근무자 부서'],이름:r['근무자'],근무일자:r['근무일'],근무유형:r['근무유형'],
+      근무시작시간:fmtHM(sh),근무종료시간:fmtHM(eh),근무시간:+work.toFixed(2),휴게시간:+brk.toFixed(2),적용시간:+applied.toFixed(2),정수:ceilHalf(applied)});
+    const nm=String(r['근무자']||'').replace('(IT)','').trim(); if(!nm) continue; const dept=r['근무자 부서']; const ty=String(r['근무유형']||'').toLowerCase();
+    ensure(nm,dept); const A=agg[nm]; A.근무시간+=work; A.휴게시간+=brk; A.적용시간+=applied;
     let effStart=sh+brk; if(effStart>eh) effStart=eh;
     for(let t=effStart; t<eh-1e-6; t+=0.25){
       const hod=hourMod24(t); const worked=t-effStart;
-      if(ty.includes('연장') && !ty.includes('휴일')){
-        if(hod>=18 && hod<22) A.평일연장+=0.25;
-        if(hod>=22 || hod<6)  A.평일야간+=0.25;
-      }else if(ty.includes('휴일')){
+      if(ty.includes('연장') && !ty.includes('휴일')){ if(hod>=18&&hod<22) A.평일연장+=0.25; if(hod>=22||hod<6) A.평일야간+=0.25; }
+      else if(ty.includes('휴일')){
         if(worked<8){ if(hod>=6&&hod<22) A.휴일일반+=0.25; else A.휴일야간+=0.25; }
         else { if(hod>=6&&hod<22) A.휴일연장+=0.25; else A.휴일연장야간+=0.25; }
       }
     }
   }
-
-  // 요약
   const summary=Object.values(agg);
-  let overHours=0, holHours=0, overPay=0, holPay=0;
-  overHours = summary.reduce((a,r)=> a + r.평일연장 + r.평일야간, 0);
-  holHours  = summary.reduce((a,r)=> a + r.휴일일반 + r.휴일연장 + r.휴일야간 + r.휴일연장야간, 0);
-  const appliedTotal = status.reduce((a,r)=> a + number(r.적용시간), 0);
+  const overHours = summary.reduce((a,r)=> a+r.평일연장+r.평일야간,0);
+  const holHours  = summary.reduce((a,r)=> a+r.휴일일반+r.휴일연장+r.휴일야간+r.휴일연장야간,0);
+  const appliedTotal = status.reduce((a,r)=> a+number(r.적용시간),0);
 
-  // 통상시급
+  let overPay=0, holPay=0;
   if(wageRows && wageRows.length){
-    const wcols=Object.keys(wageRows[0]||{});
-    if(!REQUIRED_WAGE.every(h=>wcols.includes(h))) throw new Error('통상시급 필수 헤더 누락');
-    const wageMap=new Map(); wageRows.forEach(r=> wageMap.set(`${String(r['부서']||'').trim()}|${String(r['이름']||'').trim()}`, number(r['통상시급'])));
+    const map=new Map(); wageRows.forEach(r=> map.set(`${String(r['부서']||'').trim()}|${String(r['이름']||'').trim()}`, number(r['통상시급'])));
     const mult={평일연장:1.5, 평일야간:2.0, 휴일일반:1.5, 휴일연장:2.0, 휴일야간:2.0, 휴일연장야간:2.5};
     for(const r of summary){
-      const base=wageMap.get(`${r.부서}|${r.이름}`)||0;
-      overPay += Math.ceil(base*mult.평일연장*r.평일연장) + Math.ceil(base*mult.평일야간*r.평일야간);
-      holPay  += Math.ceil(base*mult.휴일일반*r.휴일일반) + Math.ceil(base*mult.휴일연장*r.휴일연장) + Math.ceil(base*mult.휴일야간*r.휴일야간) + Math.ceil(base*mult.휴일연장야간*r.휴일연장야간);
+      const base=map.get(`${r.부서}|${r.이름}`)||0;
+      overPay += Math.ceil(base*mult.평일연장*r.평일연장)+Math.ceil(base*mult.평일야간*r.평일야간);
+      holPay  += Math.ceil(base*mult.휴일일반*r.휴일일반)+Math.ceil(base*mult.휴일연장*r.휴일연장)+Math.ceil(base*mult.휴일야간*r.휴일야간)+Math.ceil(base*mult.휴일연장야간*r.휴일연장야간);
     }
   }
   return {metrics:{appliedTotal,overHours,holHours,overPay,holPay,totalPay:overPay+holPay}};
 }
 
-/* ---------- 실행 버튼 활성 ---------- */
-function updateRunBtn(){ $('btnRun').disabled = !(curAttRows.length && curWageRows.length); }
-
-/* ---------- 차트/지표 ---------- */
-const donutPrev=$('donutPrev'), donutNow=$('donutNow');
-const barHours=$('barHours'), barPays=$('barPays');
+/* ---------- 차트 ---------- */
+const donutPrev=$('donutPrev'), donutNow=$('donutNow'); const barHours=$('barHours'), barPays=$('barPays');
 function drawDoughnut(ctx, labels, data, colors){
   if(ctx._chart) ctx._chart.destroy();
-  ctx._chart=new Chart(ctx,{
-    type:'doughnut',
-    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2}]},
-    options:{
-      maintainAspectRatio:false,aspectRatio:1.4,cutout:'62%',
+  ctx._chart=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2}]},
+    options:{maintainAspectRatio:false,aspectRatio:1.4,cutout:'62%',
       plugins:{legend:{position:'bottom',labels:{boxWidth:14}},
-        datalabels:{color:'#fff',font:{weight:'700',size:15},formatter:v=>v?`${v}%`:''}}
-    },
-    plugins:[ChartDataLabels]
-  });
+        datalabels:{color:'#fff',font:{weight:'700',size:15},formatter:v=>v?`${v}%`:''}}},plugins:[ChartDataLabels]});
 }
 function drawBars(ctx, labels, prev, now, isMoney){
   if(ctx._chart) ctx._chart.destroy();
-  ctx._chart=new Chart(ctx,{
-    type:'bar',
+  ctx._chart=new Chart(ctx,{type:'bar',
     data:{labels,datasets:[
       {label:'전월',data:prev,backgroundColor:'#60a5fa',maxBarThickness:40},
       {label:'당월',data:now, backgroundColor:'#fca5a5',maxBarThickness:40}
     ]},
-    options:{
-      maintainAspectRatio:false,aspectRatio:1.8,
+    options:{maintainAspectRatio:false,aspectRatio:1.8,
       plugins:{legend:{position:'bottom'},
-        datalabels:{anchor:'end',align:'end',offset:4,color:'#111',
-          backgroundColor:'rgba(255,255,255,.7)',borderRadius:4,padding:4,
-          formatter:v=>isMoney?Number(v).toLocaleString():v}},
-      scales:{y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>isMoney?Number(v).toLocaleString():v}}}
-    },
-    plugins:[ChartDataLabels]
-  });
+        datalabels:{anchor:'end',align:'end',offset:4,color:'#111',backgroundColor:'rgba(255,255,255,.7)',borderRadius:4,padding:4,formatter:v=>isMoney?Number(v).toLocaleString():v}},
+      scales:{y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>isMoney?Number(v).toLocaleString():v}}}},plugins:[ChartDataLabels]});
 }
 
 /* ---------- 리포트 렌더 ---------- */
 function render(now, prev){
-  // KPI 텍스트
   $('appliedNow').textContent = (now.appliedTotal||0).toFixed(1)+'h';
   $('appliedSmall').textContent = `당월: ${(now.appliedTotal||0).toFixed(1)}h (전월: ${(prev.appliedTotal||0).toFixed(1)}h)`;
   $('overPayNow').textContent = (now.overPay||0).toLocaleString();
@@ -432,71 +470,49 @@ function render(now, prev){
   $('holPayNow').textContent = (now.holPay||0).toLocaleString();
   $('holPaySmall').textContent = `당월: ${(now.holPay||0).toLocaleString()}원 (전월: ${(prev.holPay||0).toLocaleString()}원)`;
 
-  // 총수당
   $('sumTitle').textContent = `총 수당(시간외+휴일) ${(now.totalPay||0).toLocaleString()}원`;
   $('sumMeta').textContent  = `당월: ${(now.totalPay||0).toLocaleString()}원 (전월: ${(prev.totalPay||0).toLocaleString()}원)`;
-  const d = (now.totalPay||0) - (prev.totalPay||0);
-  const p = (prev.totalPay? d/prev.totalPay*100 : 0);
-  const arrow = d>=0 ? '▲' : '▼';
-  const col   = d>=0 ? '#ef4444' : '#2563eb';
-  $('sumDelta').style.color = col;
-  $('sumDelta').textContent = `${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
+  const d=(now.totalPay||0)-(prev.totalPay||0); const p=(prev.totalPay? d/prev.totalPay*100:0);
+  const arrow=d>=0?'▲':'▼'; const col=d>=0?'#ef4444':'#2563eb'; $('sumDelta').style.color=col; $('sumDelta').textContent=`${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
 
-  // 비율(연장/휴일) — 기타 제거
-  const prevTotalH=(prev.overHours||0)+(prev.holHours||0);
-  const nowTotalH =(now.overHours||0)+(now.holHours||0);
-  const pct = (n,t)=> t? Math.round(n/t*100):0;
+  // 도넛(기타 제거)
+  const prevT=(prev.overHours||0)+(prev.holHours||0); const nowT=(now.overHours||0)+(now.holHours||0);
+  const pct=(n,t)=> t? Math.round(n/t*100):0;
+  drawDoughnut(donutPrev,['연장시간','휴일시간'],[pct(prev.overHours,prevT),pct(prev.holHours,prevT)],['#bcd7ff','#e5e7eb']); // 전월 옅은 파랑
+  drawDoughnut(donutNow, ['연장시간','휴일시간'],[pct(now.overHours,nowT),pct(now.holHours,nowT)],['#ef4444','#2563eb']); // 당월 진한(구분 강함)
 
-  drawDoughnut(donutPrev, ['연장시간','휴일시간'], [pct(prev.overHours,prevTotalH), pct(prev.holHours,prevTotalH)], ['#f5bcbc','#bcd7ff']);
-  drawDoughnut(donutNow,  ['연장시간','휴일시간'], [pct(now.overHours,nowTotalH),   pct(now.holHours,nowTotalH)],   ['#ef4444','#2563eb']);
-
-  // 막대(시간/수당)
-  drawBars(barHours, ['적용시간(h)','연장시간(h)','휴일시간(h)'],
-           [prev.appliedTotal||0, prev.overHours||0, prev.holHours||0],
-           [now.appliedTotal||0,  now.overHours||0,  now.holHours||0], false);
-
-  drawBars(barPays, ['총수당(원)','시간외수당(원)','휴일수당(원)'],
-           [prev.totalPay||0, prev.overPay||0, prev.holPay||0],
-           [now.totalPay||0,  now.overPay||0,  now.holPay||0], true);
+  // 막대(시간/수당) — 라벨 겹침 방지 라인
+  drawBars(barHours,['적용시간(h)','연장시간(h)','휴일시간(h)'],
+          [prev.appliedTotal||0,prev.overHours||0,prev.holHours||0],
+          [now.appliedTotal||0, now.overHours||0, now.holHours||0], false);
+  drawBars(barPays,['총수당(원)','시간외수당(원)','휴일수당(원)'],
+          [prev.totalPay||0,prev.overPay||0,prev.holPay||0],
+          [now.totalPay||0, now.overPay||0, now.holPay||0], true);
 }
 
 /* ---------- 실행 ---------- */
 $('btnRun').addEventListener('click', ()=>{
   try{
     // 당월
-    resultNow = process(curAttRows, curWageRows).metrics;
+    const now = process(curAttRows, curWageRows).metrics;
 
-    // 전월: 통합자료 우선, 없으면 RAW+WAGE 처리
-    if(prevMergedMetrics){
-      resultPrev = prevMergedMetrics;
-    }else if(prevAttRows.length && prevWageRows.length){
-      resultPrev = process(prevAttRows, prevWageRows).metrics;
-    }else{
-      resultPrev = {appliedTotal:0,overHours:0,holHours:0,overPay:0,holPay:0,totalPay:0};
-    }
+    // 전월: 통합 우선, 없으면 RAW+WAGE
+    let prev={appliedTotal:0,overHours:0,holHours:0,overPay:0,holPay:0,totalPay:0};
+    if(prevMergedMetrics) prev=prevMergedMetrics;
+    else if(prevAttRows.length && prevWageRows.length) prev=process(prevAttRows, prevWageRows).metrics;
 
-    render(resultNow, resultPrev);
+    render(now, prev);
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
     document.querySelector('.step[data-step="2"]').classList.add('active');
-    gotoPage(2);
+    goto(2);
     showToast('시뮬레이션 완료');
-  }catch(err){
-    console.error(err); showToast('실패: '+err.message);
-  }
+  }catch(err){ console.error(err); showToast('실패: '+err.message); }
 });
 
-/* ---------- 네비 ---------- */
-function gotoPage(n){
-  const pages=[...document.querySelectorAll('.page')];
-  pages.forEach(p=>{p.classList.remove('show'); p.style.display='none';});
-  const tgt = document.getElementById('page'+n); tgt.style.display='block'; requestAnimationFrame(()=>tgt.classList.add('show'));
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-document.querySelectorAll('.step').forEach(s=> s.addEventListener('click', ()=>{
-  const n=Number(s.dataset.step); document.querySelectorAll('.step').forEach(x=>x.classList.remove('active')); s.classList.add('active'); gotoPage(n);
-}));
-/* 초기 */
-gotoPage(1);
+/* ---------- 페이지 전환 ---------- */
+function goto(n){ const pages=[...document.querySelectorAll('.page')]; pages.forEach(p=>{p.classList.remove('show'); p.style.display='none';}); const tgt=$('page'+n); tgt.style.display='block'; requestAnimationFrame(()=>tgt.classList.add('show')); window.scrollTo({top:0,behavior:'smooth'}); }
+document.querySelectorAll('.step').forEach(s=> s.addEventListener('click', ()=>{ const n=Number(s.dataset.step); document.querySelectorAll('.step').forEach(x=>x.classList.remove('active')); s.classList.add('active'); goto(n); }));
+goto(1);
 </script>
 </body>
 </html>
