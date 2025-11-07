@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ATEC 인사관리(근태) 프로그램 · 전월/당월 비교(추세 화살표)</title>
+<title>ATEC 인사관리(근태) · 전월/당월 비교(안정화)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -56,7 +56,7 @@
   .btn[disabled]{background:#9ca3af;cursor:not-allowed}
   .btn:not([disabled]):hover{background:var(--accent1)}
   .muted{color:var(--muted)}
-  .badge{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e3a8a;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#065f46;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
 
   .summary-grid{display:grid;grid-template-columns:1.1fr .9fr .9fr;gap:16px;align-items:stretch}
   .kpi{border:1px solid var(--line);border-radius:16px;padding:18px}
@@ -221,7 +221,7 @@
         </div>
       </div>
 
-      <!-- 전월 대비 비교 차트(추세 화살표 포함) -->
+      <!-- 전월 대비 비교 차트 -->
       <div class="card">
         <h3 style="margin-top:0">전월 대비 비교 차트</h3>
         <div class="chart-row">
@@ -266,8 +266,6 @@
 
 <script>
 Chart.register(ChartDataLabels);
-
-/* ===== 유틸/탭 ===== */
 const $=(id)=>document.getElementById(id);
 const showToast=(m)=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200);};
 const steps=[...document.querySelectorAll('.stepper .step')];
@@ -275,11 +273,11 @@ const pages=[$('page1'),$('page2'),$('page3'),$('page4')];
 function gotoStep(n){steps.forEach(s=>s.classList.remove('active'));steps[n-1].classList.add('active');pages.forEach(p=>{p.classList.remove('show');p.style.display='none';});const tgt=pages[n-1];tgt.style.display='block';requestAnimationFrame(()=>tgt.classList.add('show'));window.scrollTo({top:0,behavior:'smooth'});}
 steps.forEach(s=>s.addEventListener('click',()=>gotoStep(Number(s.dataset.target))));
 
-/* ===== 필수 헤더 ===== */
+/* 필수 헤더 */
 const REQUIRED_ATT=["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"];
 const REQUIRED_WAGE=["부서","이름","통상시급"];
 
-/* ===== 업로드 & 매핑 ===== */
+/* 업로드/매핑 */
 let attRowsRaw=[], wageRowsRaw=[], attRows=[], wageRows=[];
 let okAtt=false, okWage=false;
 
@@ -315,9 +313,7 @@ function openMapper(title, requiredKeys, columns, onApply){
       </div>
     </div>`;
     document.body.appendChild(wrap);
-  }else{
-    modal.style.display='flex';
-  }
+  }else{ modal.style.display='flex'; }
   $('mapTitle').textContent=title; const grid=$('mapGrid'); grid.innerHTML="";
   const guesses=guessMapKeys(requiredKeys, columns);
   requiredKeys.forEach(k=>{const wrap=document.createElement('div');wrap.className='cell';const lab=document.createElement('label');lab.textContent=k;const sel=document.createElement('select');sel.dataset.key=k;sel.style.width='100%';sel.style.padding='8px';sel.style.border='1px solid #e5e7eb';sel.style.borderRadius='10px';sel.appendChild(new Option('-- 열 선택 --',''));columns.forEach(col=>sel.appendChild(new Option(col,col)));sel.value=guesses[k]||"";wrap.appendChild(lab);wrap.appendChild(sel);grid.appendChild(wrap);});
@@ -353,7 +349,7 @@ attachPicker('fileAtt','nameAtt','att');
 attachPicker('fileWage','nameWage','wage');
 function updateStartBtn(){ $('startSim').disabled=!(okAtt && okWage); }
 
-/* ===== 전월 업로드(개별/통합) ===== */
+/* 전월 업로드 */
 let prevAttRows=null, prevWageRows=null, prevMetrics=null;
 function updatePrevStatusTexts(){ $('prevAttStatus').textContent='전월 근태 RAW: '+(prevAttRows?'업로드됨':'미업로드'); $('prevWageStatus').textContent='전월 통상시급: '+(prevWageRows?'업로드됨':'미업로드'); }
 function updatePrevBadge(){ const b=$('prevState'); if(prevMetrics){ b.style.background='#dcfce7'; b.style.color='#065f46'; b.innerHTML=`<span>●</span> 전월 데이터: 지정됨 (${prevMetrics.from||'업로드'})`; } else { b.style.background='#eef2ff'; b.style.color='#1e3a8a'; b.innerHTML=`<span>●</span> 전월 데이터: 미지정`; } }
@@ -401,7 +397,7 @@ attachPrevPicker('prevAtt','prevAttName','prev_att');
 attachPrevPicker('prevWage','prevWageName','prev_wage');
 updatePrevStatusTexts();
 
-/* ===== 엔진 (처리/집계) ===== */
+/* 엔진 */
 const date21=new Date(new Date().getFullYear(), new Date().getMonth(), 21);
 function hourMod24(t){return t-24*Math.floor(t/24);}
 function parseTime(s){if(s==null) return -1; let st=String(s).trim(); if(!st) return -1; st=st.replace(/\s+/g,"").replace("시",":").replace("분",""); if(!st.includes(":")){ if(!/^\d+$/.test(st)) return -1; const n=parseInt(st,10); if(st.length<=2) return n; if(st.length<=4) return Math.floor(n/100)+(n%100)/60; return -1; } let [h,m]=st.split(":"); h=parseInt(h,10); m=parseInt(m,10); if(isNaN(h)||isNaN(m)||m<0||m>=60) return -1; return h+m/60;}
@@ -451,7 +447,7 @@ function process(att, wage){
     overPay, holPay, totalPay:overPay+holPay }};
 }
 
-/* ===== 리포트 주석 & 그래프 ===== */
+/* 주석/그래프 */
 const appliedLine1=$('appliedLine1'), appliedLine2=$('appliedLine2');
 const overPayLine1=$('overPayLine1'), overPayLine2=$('overPayLine2');
 const holPayLine1=$('holPayLine1'), holPayLine2=$('holPayLine2');
@@ -474,7 +470,26 @@ function setArrowSpans(el,obj,unit,isMoney){
 function drawDoughnut(ctxRef, labels, data, isNow){
   const colors=isNow?['#ef4444','#2563eb','#cbd5e1']:['#fca5a5','#93c5fd','#e5e7eb'];
   if(ctxRef._chart) ctxRef._chart.destroy();
-  ctxRef._chart=new Chart(ctxRef,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors}]},options:{plugins:{legend:{display:true,position:'bottom'},datalabels:{color:'#fff',textStrokeColor:'rgba(0,0,0,0.38)',textStrokeWidth:3,font:{size:18,weight:'900'},formatter:(v,ctx)=>{const total=ctx.dataset.data.reduce((a,b)=>a+(+b||0),0); if(!total) return ''; const per=v/total*100; return per<3?'':per.toFixed(1)+'%';}}},cutout:'62%'}});
+  ctxRef._chart=new Chart(ctxRef,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors}]},options:{plugins:{legend:{display=true,position:'bottom'},datalabels:{color:'#fff',textStrokeColor:'rgba(0,0,0,0.38)',textStrokeWidth:3,font:{size:18,weight:'900'},formatter:(v,ctx)=>{const total=ctx.dataset.data.reduce((a,b)=>a+(+b||0),0); if(!total) return ''; const per=v/total*100; return per<3?'':per.toFixed(1)+'%';}}},cutout:'62%'}});
+}
+
+/* 보조: CSS 변수 값 */
+function cssVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+/* 라운드 사각형(브라우저 호환용) */
+function roundRectPath(ctx,x,y,w,h,r){
+  r=Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h);
+  ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r);
+  ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
 }
 
 /* 막대 라벨 도우미 */
@@ -482,13 +497,13 @@ function labelAnchor(ctx){const v=ctx.dataset.data[ctx.dataIndex]||0; const yMax
 function labelAlign(ctx){const v=ctx.dataset.data[ctx.dataIndex]||0; const yMax=ctx.chart.scales.y.max||1; return v>(yMax*0.22)?'center':'end';}
 function labelColor(ctx){const v=ctx.dataset.data[ctx.dataIndex]||0; const yMax=ctx.chart.scales.y.max||1; return v>(yMax*0.22)?'#ffffff':'#0f172a';}
 
-/* 추세 주석 플러그인: 각 카테고리의 전월→당월 변화(%)를 그룹 중앙 위에 그림 */
+/* 추세 주석 플러그인(호환 버전) */
 const TrendPlugin = {
   id: 'trendArrows',
-  afterDatasetsDraw(chart, args, opts){
-    const {ctx, data, chartArea:{top}} = chart;
-    const dsPrev = chart.getDatasetMeta(0); // 전월
-    const dsNow  = chart.getDatasetMeta(1); // 당월
+  afterDatasetsDraw(chart){
+    const {ctx, data} = chart;
+    const dsPrev = chart.getDatasetMeta(0);
+    const dsNow  = chart.getDatasetMeta(1);
     if(!dsPrev || !dsNow) return;
 
     ctx.save();
@@ -499,7 +514,7 @@ const TrendPlugin = {
     for(let i=0;i<data.labels.length;i++){
       const barPrev = dsPrev.data[i];
       const barNow  = dsNow.data[i];
-      if(!barPrev || !barNow) continue;
+      if(!barPrev || !barNow || !barPrev.x || !barNow.x) continue;
 
       const prevVal = dsPrev.dataset.data[i] || 0;
       const nowVal  = dsNow.dataset.data[i]  || 0;
@@ -507,20 +522,21 @@ const TrendPlugin = {
       const p = prevVal ? (d/prevVal*100) : (nowVal>0 ? 100 : 0);
 
       const midX = (barPrev.x + barNow.x)/2;
-      const yTop = Math.min(barPrev.y, barNow.y) - 10; // 막대 상단보다 살짝 위
+      const yTop = Math.min(barPrev.y, barNow.y) - 10;
 
       const up = d>0, flat = d===0;
-      const color = up ? getCSS('--up') : (flat ? getCSS('--flat') : getCSS('--down'));
+      const color = up ? cssVar('--up') : (flat ? cssVar('--flat') : cssVar('--down'));
       const sym   = up ? '↖ ▲' : (flat ? '•' : '↘ ▼');
       const text  = `${sym} ${Math.abs(p).toFixed(1)}%`;
 
-      // 화살표+퍼센트 라벨 배경(가독성)
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      // 배경 상자(라운드 사각형 폴리필)
       const padX=8, padY=6;
       const w = ctx.measureText(text).width + padX*2;
       const h = 22;
-      ctx.beginPath();
-      ctx.roundRect(midX - w/2, yTop - h, w, h, 6);
+      const x = midX - w/2, y = yTop - h;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      roundRectPath(ctx, x, y, w, h, 6);
       ctx.fill();
 
       // 텍스트
@@ -528,8 +544,6 @@ const TrendPlugin = {
       ctx.fillText(text, midX, yTop - 4);
     }
     ctx.restore();
-
-    function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
   }
 };
 
@@ -546,11 +560,11 @@ function drawHoursAll(ctxRef, prevApplied, nowApplied, prevOverH, nowOverH, prev
     type:'bar',
     plugins:[ChartDataLabels, TrendPlugin],
     data:{labels,datasets:[
-      {label:'전월', data:prev, backgroundColor:getCSS('--bar-prev'), order:1, barThickness:32, categoryPercentage:0.6, barPercentage:0.9},
-      {label:'당월', data:now,  backgroundColor:getCSS('--bar-now'),  order:2, barThickness:32, categoryPercentage:0.6, barPercentage:0.9}
+      {label:'전월', data:prev, backgroundColor:cssVar('--bar-prev'), order:1, barThickness:32, categoryPercentage:0.6, barPercentage:0.9},
+      {label:'당월', data:now,  backgroundColor:cssVar('--bar-now'),  order:2, barThickness:32, categoryPercentage:0.6, barPercentage:0.9}
     ]},
     options:{
-      layout:{padding:{top:36}}, /* 추세 라벨 공간 */
+      layout:{padding:{top:36}},
       plugins:{
         legend:{display:true,position:'bottom'},
         datalabels:{
@@ -567,11 +581,9 @@ function drawHoursAll(ctxRef, prevApplied, nowApplied, prevOverH, nowOverH, prev
       }
     }
   });
-
-  function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 }
 
-/* 금액 포맷: 백만 단위 1자리 (라벨), 축/도표는 겹침 방지 */
+/* 금액 포맷 */
 function toMillions1(v){return (Number(v)/1_000_000).toFixed(1);}
 
 /* 수당 막대(시간외·휴일·총) */
@@ -587,8 +599,8 @@ function drawPays(ctxRef, prevOver, nowOver, prevHol, nowHol, prevSum, nowSum){
     type:'bar',
     plugins:[ChartDataLabels, TrendPlugin],
     data:{labels,datasets:[
-      {label:'전월', data:prev, backgroundColor:getCSS('--bar-prev'), order:1, barThickness:32, categoryPercentage:0.6, barPercentage:0.9},
-      {label:'당월', data:now,  backgroundColor:getCSS('--bar-now'),  order:2, barThickness:32, categoryPercentage:0.6, barPercentage:0.9}
+      {label:'전월', data:prev, backgroundColor:cssVar('--bar-prev'), order:1, barThickness:32, categoryPercentage:0.6, barPercentage:0.9},
+      {label:'당월', data:now,  backgroundColor:cssVar('--bar-now'),  order:2, barThickness:32, categoryPercentage:0.6, barPercentage:0.9}
     ]},
     options:{
       layout:{padding:{top:40}},
@@ -608,11 +620,13 @@ function drawPays(ctxRef, prevOver, nowOver, prevHol, nowHol, prevSum, nowSum){
       }
     }
   });
-
-  function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 }
 
-/* 리포트 렌더 */
+/* 리포트 */
+const appliedLine1El=$('appliedLine1'), appliedLine2El=$('appliedLine2');
+const overPayLine1El=$('overPayLine1'), overPayLine2El=$('overPayLine2');
+const holPayLine1El=$('holPayLine1'),  holPayLine2El=$('holPayLine2');
+
 function renderReport(cur){
   const M=cur.metrics;
   const nowApplied=M.appliedTotal||0, nowOverPay=M.overPay||0, nowHolPay=M.holPay||0, nowSum=nowOverPay+nowHolPay;
@@ -625,17 +639,17 @@ function renderReport(cur){
   const prevOverH=prevMetrics?.overHours||0;
   const prevHolH=prevMetrics?.holHours||0;
 
-  appliedLine1.textContent=`당월: ${nowApplied.toFixed(1)}h (전월: ${prevApplied.toFixed(1)}h)`;
-  overPayLine1.textContent=`당월: ${nowOverPay.toLocaleString()} (전월: ${prevOverPay.toLocaleString()})`;
-  holPayLine1.textContent =`당월: ${nowHolPay.toLocaleString()} (전월: ${prevHolPay.toLocaleString()})`;
+  appliedLine1El.textContent=`당월: ${nowApplied.toFixed(1)}h (전월: ${prevApplied.toFixed(1)}h)`;
+  overPayLine1El.textContent=`당월: ${nowOverPay.toLocaleString()} (전월: ${prevOverPay.toLocaleString()})`;
+  holPayLine1El.textContent =`당월: ${nowHolPay.toLocaleString()} (전월: ${prevHolPay.toLocaleString()})`;
 
   const dA = deltaObj(nowApplied, prevApplied);
   const dO = deltaObj(nowOverPay, prevOverPay);
   const dH = deltaObj(nowHolPay,  prevHolPay);
 
-  setArrowSpans(appliedLine2, dA,'h',false);
-  setArrowSpans(overPayLine2, dO,'원',true);
-  setArrowSpans(holPayLine2,  dH,'원',true);
+  setArrowSpans(appliedLine2El, dA,'h',false);
+  setArrowSpans(overPayLine2El, dO,'원',true);
+  setArrowSpans(holPayLine2El,  dH,'원',true);
 
   sumPayNow.textContent=nowSum.toLocaleString();
   const dSum=deltaObj(nowSum, prevSum);
@@ -652,23 +666,15 @@ function renderReport(cur){
   footPrev.textContent=`연장시간 ${prevOverH.toFixed(1)}h · 휴일시간 ${prevHolH.toFixed(1)}h · 총수당 ${prevSum.toLocaleString()}원`;
   footNow.textContent =`연장시간 ${nowOverH.toFixed(1)}h · 휴일시간 ${nowHolH.toFixed(1)}h · 총수당 ${nowSum.toLocaleString()}원`;
 
-  // 막대(집약): 시간 비교(적용·연장·휴일)
+  // 막대
   drawHoursAll(barHoursAll, prevApplied, nowApplied, prevOverH, nowOverH, prevHolH, nowHolH);
-  // 막대(집약): 수당 비교(시간외·휴일·총)
   drawPays(barPays, prevOverPay, nowOverPay, prevHolPay, nowHolPay, prevSum, nowSum);
 
   updatePrevBadge();
 }
 
-/* ===== 테이블 렌더링 & 저장 (이전 버전과 동일) ===== */
+/* 테이블 렌더 & 저장 */
 const tblStatus=$('tblStatus'), tblSummary=$('tblSummary'), tblNext=$('tblNext');
-function renderTable(el, rows){
-  if(!rows||!rows.length){ el.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
-  const cols=Object.keys(rows[0]);
-  let thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
-  let tbody='<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('')+'</tbody>';
-  el.innerHTML=thead+tbody;
-}
 function renderStatusTable(rows){
   if(!rows||!rows.length){ tblStatus.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
   const cols=Object.keys(rows[0]);
@@ -677,10 +683,10 @@ function renderStatusTable(rows){
   rows.forEach(r=>{sub.근무시간+=toNum(r['근무시간']);sub.휴게시간+=toNum(r['휴게시간']);sub.적용시간+=toNum(r['적용시간']);sub.정수+=toNum(r['정수']);});
   const tbody='<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('')+'</tbody>';
   let tds=cols.map(c=>{
-    if(c==='근무시간') return `<td class="t-right">${sub.근무시간.toFixed(2)}</td>`;
-    if(c==='휴게시간') return `<td class="t-right">${sub.휴게시간.toFixed(2)}</td>`;
-    if(c==='적용시간') return `<td class="t-right">${sub.적용시간.toFixed(2)}</td>`;
-    if(c==='정수')     return `<td class="t-right">${sub.정수.toLocaleString()}</td>`;
+    if(c==='근무시간') return `<td style="text-align:right">${sub.근무시간.toFixed(2)}</td>`;
+    if(c==='휴게시간') return `<td style="text-align:right">${sub.휴게시간.toFixed(2)}</td>`;
+    if(c==='적용시간') return `<td style="text-align:right">${sub.적용시간.toFixed(2)}</td>`;
+    if(c==='정수')     return `<td style="text-align:right">${sub.정수.toLocaleString()}</td>`;
     if(c==='순번')     return `<td>소계</td>`;
     return `<td></td>`;
   }).join('');
