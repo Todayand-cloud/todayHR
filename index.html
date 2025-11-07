@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ATEC 인사관리(근태) · v6.1 (차트 안정화/폰트·간격 조정)</title>
+<title>ATEC 인사관리(근태) · v6.2 (도넛%라벨/근태정리 원복)</title>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -14,12 +14,15 @@
   :root{
     --bg:#f6f8fb;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;
     --accent1:#2563eb;--accent2:#ef4444;--ok:#16a34a;--dark:#111827;
+    --grp-ot:#ffe9e9;   /* 시간외 묶음 배경 */
+    --grp-ot-border:#ffbaba;
+    --grp-hol:#e9f0ff;  /* 휴일 묶음 배경 */
+    --grp-hol-border:#b9ccff;
   }
   *{box-sizing:border-box}
   body{font-family:'Pretendard','Noto Sans KR',system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);margin:0;color:var(--ink)}
   header{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;font-weight:800}
 
-  /* 상단 고정 스텝 */
   .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid var(--line)}
   .stepper{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
   .step{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font-weight:700;color:#374151;transition:.25s;cursor:pointer}
@@ -32,11 +35,9 @@
   main{max-width:1100px;margin:18px auto;padding:0 16px}
   .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.05);padding:20px;margin:18px 0}
 
-  /* 페이지 전환 */
   .page{display:none;opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s ease}
   .page.show{display:block;opacity:1;transform:none}
 
-  /* 업로드 */
   .upload{display:flex;gap:16px;flex-wrap:wrap}
   .upload-card{flex:1 1 31%;border:2px dashed var(--line);border-radius:12px;padding:20px;text-align:center;background:#fbfdff;min-width:260px}
   input[type=file]{display:none}
@@ -47,40 +48,40 @@
   .btn{background:#111827;color:#fff;border:none;border-radius:12px;padding:14px 24px;cursor:pointer;font-weight:700}
   .btn[disabled]{background:#9ca3af;cursor:not-allowed}
   .btn:not([disabled]):hover{background:var(--accent1)}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e3a8a;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
 
-  /* KPI 블록 (크기/줄간격 조정) */
-  .summary-grid{display:grid;grid-template-columns:1.1fr .9fr .9fr;gap:16px;align-items:stretch}
-  .kpi{border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column}
+  /* KPI 크기/간격 */
+  .summary-grid{display:grid;grid-template-columns:1.1fr .9fr .9fr;gap:16px}
+  .kpi{border:1px solid var(--line);border-radius:16px;padding:16px 18px}
   .kpi h3{margin:0;color:var(--muted);font-size:13px}
-  .kpi .small{color:#374151;margin-top:6px;line-height:1.4}  /* 줄간격 ↑ */
-  .kpi .big{font-size:28px;font-weight:800;line-height:1.2;letter-spacing:-.2px;margin-top:6px} /* 2pt 축소 */
-  .kpi .delta{margin-top:8px;line-height:1.4} /* 비교/증감 행 간격 ↑ */
-  .delta-up{color:#dc2626}
-  .delta-down{color:#2563eb}
+  .kpi .small{color:#374151;margin-top:6px;line-height:1.5}
+  .kpi .big{font-size:28px;font-weight:800;line-height:1.25;margin-top:6px}
+  .kpi .delta{margin-top:10px;line-height:1.5}
+  .delta-up{color:#dc2626}.delta-down{color:#2563eb}
 
-  .chart-row{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
-  .chart-box{width:320px;text-align:center}
+  .chart-row{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+  .chart-box{width:340px;text-align:center}
   canvas{width:100%;height:auto}
 
   table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--line);padding:8px;text-align:center;font-size:.92rem}
+  th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:center;font-size:.92rem}
   th{background:#f3f4f6;position:sticky;top:0}
+  /* 익월적용: 한 줄 고정 */
+  #tblNext th,#tblNext td{white-space:nowrap}
 
-  .save-row{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
-  .btn-save{flex:1 1 0}
-  .btn-merge{flex:3 1 0;background:var(--accent1)}
-  .btn-merge:hover{background:#1d4ed8}
-
-  .toast{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.95;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);display:none}
-  .badge{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e3a8a;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
-
-  /* 매핑 모달 */
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:10000}
-  .modal .panel{background:#fff;max-width:720px;width:92vw;border-radius:16px;box-shadow:0 16px 60px rgba(0,0,0,.35);padding:18px}
-  .grid-map{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .grid-map .cell{display:flex;align-items:center;gap:10px}
-  .grid-map label{min-width:180px;font-weight:700}
-  select{width:100%;padding:8px;border:1px solid var(--line);border-radius:10px}
+  /* 근태정리: 컬럼 그룹 시각화 */
+  #tblSummary .col-ot{background:var(--grp-ot)}
+  #tblSummary .col-hol{background:var(--grp-hol)}
+  #tblSummary tr:nth-child(2) td.col-ot,
+  #tblSummary tr:nth-child(2) td.col-hol,
+  #tblSummary tr td.col-ot:not(.subtotal),
+  #tblSummary tr td.col-hol:not(.subtotal){
+    /* 그룹 테두리(상하좌우) */
+    box-shadow:inset 0 0 0 1.5px var(--line);
+    border-radius:6px;
+  }
+  /* 소계 행 스타일 */
+  #tblSummary tr.subtotal-row td{font-weight:800;background:#fafafa}
 </style>
 </head>
 <body>
@@ -187,11 +188,12 @@
           </div>
         </div>
 
-        <div class="card" style="margin:16px 0;background:#f9fafb;border:1px dashed var(--line)">
+        <!-- 총 수당 블록: 줄간격/여백 확대 -->
+        <div class="card" style="margin:20px 0 6px;background:#f9fafb;border:1px dashed var(--line);padding:26px 16px">
           <div style="text-align:center">
-            <div style="font-weight:800;font-size:24px">총 수당(시간외+휴일)</div>
-            <div style="font-size:36px;font-weight:900;letter-spacing:-.2px" id="sumPayNow">0</div>
-            <div class="delta" id="sumPayDelta">—</div>
+            <div style="font-weight:800;font-size:24px;margin-bottom:8px">총 수당(시간외 + 휴일)</div>
+            <div style="font-size:36px;font-weight:900;letter-spacing:-.2px;margin-bottom:8px" id="sumPayNow">0</div>
+            <div class="delta" id="sumPayDelta" style="margin-top:4px">—</div>
           </div>
         </div>
       </div>
@@ -201,12 +203,12 @@
           <div class="chart-box">
             <div style="font-weight:700;margin-bottom:8px">전월 시간/수당 비율</div>
             <canvas id="donutPrev"></canvas>
-            <p style="margin:.5rem 0 0;color:#374151;font-size:13px" id="prevSummaryInfo">—</p>
+            <p style="margin:.7rem 0 0;color:#374151;font-size:13px" id="prevSummaryInfo">—</p>
           </div>
           <div class="chart-box">
             <div style="font-weight:700;margin-bottom:8px">당월 시간/수당 비율</div>
             <canvas id="donutNow"></canvas>
-            <p style="margin:.5rem 0 0;color:#374151;font-size:13px" id="nowSummaryInfo">—</p>
+            <p style="margin:.7rem 0 0;color:#374151;font-size:13px" id="nowSummaryInfo">—</p>
           </div>
         </div>
       </div>
@@ -273,7 +275,7 @@
   <div id="toast" class="toast"></div>
 
 <script>
-/* ===== 도우미 ===== */
+/* ===== 공통 ===== */
 const $=(id)=>document.getElementById(id);
 const showToast=(m)=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200);};
 const steps=[...document.querySelectorAll('.stepper .step')];
@@ -377,10 +379,10 @@ function normalizeRows(rows, mapping){
   });
 }
 
-/* ===== 파일 선택(중복 팝업 방지) ===== */
+/* ===== 파일 선택(한 번만 뜨게) ===== */
 function hookPicker(inputId, nameId, type){
   const input=$(inputId), name=$(nameId), label=document.querySelector(`label[for="${inputId}"]`);
-  label.addEventListener('click',()=>{ input.value=""; });   // 같은 파일 재선택 인식
+  label.addEventListener('click',()=>{ input.value=""; });
   input.addEventListener('click',()=>{ input.value=""; });
   input.addEventListener('change', async (e)=>{
     const f=e.target.files && e.target.files[0];
@@ -407,7 +409,6 @@ function hookPicker(inputId, nameId, type){
         label.classList.remove('flash'); void label.offsetWidth; label.classList.add('flash');
         if(type==='prevAtt'){ prevAttRaw=rows; name.textContent=`전월 근태 RAW: 업로드됨 · ${f.name} (${rows.length}행)`; }
         else { prevWageRaw=rows; name.textContent=`전월 통상시급: 업로드됨 · ${f.name} (${rows.length}행)`; }
-        // 간이: 적용시간만 추정 (수당은 통합자료 업로드 권장)
         if(prevAttRaw.length){ let applied=0; for(const r of prevAttRaw){ const raw=String(r['신청시간']||''); if(!raw.includes('~')) continue; let [s,e]=raw.split('~').map(x=>x.trim()); let sh=parseTime(s), eh=parseTime(e); if(sh<0||eh<0) continue; if(eh<sh) eh+=24; const w=eh-sh, br=Math.floor(w/5); applied+=w-br; } prevMetrics=prevMetrics||{}; prevMetrics.appliedTotal=+applied.toFixed(1); prevMetrics.from='전월 개별 업로드'; }
         updatePrevBadge(); if(currentResult) renderReport(currentResult);
         return;
@@ -493,7 +494,7 @@ function process(att, wage){
   _status.forEach((r,i)=> r.순번=i+1);
   _summary=Object.values(agg).map((A,i)=>({순번:i+1,부서:A.부서,이름:A.이름,근무시간:+A.근무시간.toFixed(2),휴게시간:+A.휴게시간.toFixed(2),적용시간:+A.적용시간.toFixed(2),평일연장:+A.평일연장.toFixed(2),평일야간:+A.평일야간.toFixed(2),휴일일반:+A.휴일일반.toFixed(2),휴일연장:+A.휴일연장.toFixed(2),휴일야간:+A.휴일야간.toFixed(2),휴일연장야간:+A.휴일연장야간.toFixed(2)}));
 
-  // 통상시급
+  // 통상시급 수당 집계
   let overPay=0, holPay=0, totalPay=0;
   if(wage && wage.length){
     const cols2=Object.keys(wage[0]||{});
@@ -534,25 +535,49 @@ function updatePrevBadge(){
 }
 $('btnPrevReset').addEventListener('click', ()=>{ prevMetrics=null; updatePrevBadge(); if(currentResult) renderReport(currentResult); showToast('전월 데이터가 초기화되었습니다.'); });
 
-/* ===== 막대 값 라벨 플러그인 (안정화 버전) ===== */
+/* ===== 차트 라벨 플러그인들 ===== */
 const BarValuePlugin = {
   id:'barValue',
-  afterDatasetsDraw(chart, args, opts){
+  afterDatasetsDraw(chart){
     const {ctx} = chart;
     const isMoney = chart.$money || false;
     chart.data.datasets.forEach((ds, di)=>{
-      const meta = chart.getDatasetMeta(dsIndex=di);
+      const meta = chart.getDatasetMeta(di);
       meta.data.forEach((el, i)=>{
         const raw = ds.data[i]; if(raw==null) return;
         const text = isMoney ? Number(raw).toLocaleString() : (typeof raw==='number' ? (Math.round(raw*10)/10).toString() : raw);
         ctx.save();
         ctx.font='12px Pretendard, sans-serif';
-        ctx.fillStyle = di===0 ? '#2563eb' : '#b91c1c';   // 전월 파랑 / 당월 진한 적색 라벨
-        ctx.textAlign='center';
+        ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=3; ctx.textAlign='center';
         let y = el.y - 6; if (y < chart.chartArea.top + 12) y = chart.chartArea.top + 12;
+        ctx.strokeText(text, el.x, y);
+        ctx.fillStyle = di===0 ? '#2563eb' : '#b91c1c';
         ctx.fillText(text, el.x, y);
         ctx.restore();
       });
+    });
+  }
+};
+const DoughnutPercentPlugin = {
+  id:'donutPercent',
+  afterDatasetsDraw(chart){
+    if(chart.config.type!=='doughnut') return;
+    const {ctx} = chart;
+    const ds = chart.data.datasets[0]; if(!ds) return;
+    const meta = chart.getDatasetMeta(0);
+    const total = ds.data.reduce((a,b)=>a+(+b||0),0) || 0;
+    meta.data.forEach((arc, i)=>{
+      const val=+ds.data[i]||0; if(!val || total===0) return;
+      const p = Math.round(val/total*100);
+      const pos = arc.tooltipPosition();
+      ctx.save();
+      ctx.font='bold 13px Pretendard, sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=3;
+      ctx.strokeText(p+'%', pos.x, pos.y);
+      ctx.fillStyle='#111827';
+      ctx.fillText(p+'%', pos.x, pos.y);
+      ctx.restore();
     });
   }
 };
@@ -567,7 +592,8 @@ function drawDoughnut(ctxRef, labels, data, colors){
   ctxRef._chart = new Chart(ctxRef,{
     type:'doughnut',
     data:{labels:L, datasets:[{data:D, backgroundColor:C, borderWidth:0}]},
-    options:{ plugins:{legend:{display:true,position:'bottom'}}, cutout:'65%' }
+    options:{ plugins:{legend:{display:true,position:'bottom'}}, cutout:'65%' },
+    plugins:[DoughnutPercentPlugin]
   });
 }
 
@@ -582,19 +608,16 @@ function drawGroupedBars(ctxRef, labels, prev, now, isMoney){
       ]
     },
     options:{
-      categoryPercentage:0.7,
-      barPercentage:0.85,
-      plugins:{
-        legend:{display:true,position:'bottom'},
-        tooltip:{callbacks:{label:(c)=> isMoney? Number(c.parsed.y).toLocaleString() : c.parsed.y}},
-      },
-      scales:{
-        y:{ grid:{color:'#eef2ff'}, ticks:{ callback:(v)=> isMoney? Number(v).toLocaleString() : v }, suggestedMax: Math.max(...prev,...now)*1.25 }
-      }
+      categoryPercentage:0.7, barPercentage:0.85,
+      plugins:{ legend:{display:true,position:'bottom'},
+                tooltip:{callbacks:{label:(c)=> isMoney? Number(c.parsed.y).toLocaleString() : c.parsed.y}} },
+      scales:{ y:{ grid:{color:'#eef2ff'},
+                   ticks:{ callback:(v)=> isMoney? Number(v).toLocaleString() : v },
+                   suggestedMax: Math.max(...prev,...now)*1.25 } }
     },
     plugins:[BarValuePlugin]
   });
-  chart.$money = isMoney;  // 플러그인에서 금액 포맷 여부 사용
+  chart.$money = isMoney;
   ctxRef._chart = chart;
 }
 
@@ -614,10 +637,7 @@ function makeDeltaText(now, prev, unit, isMoney){
   const fmtPrev= isMoney? (prev||0).toLocaleString() : (prev||0).toFixed(1);
   const fmtDelta = isMoney? Math.abs(d).toLocaleString() : Math.abs(d).toFixed(1);
   const pctText = `(${Math.abs(pct).toFixed(1)}%)`;
-  return {
-    line:`당월: ${fmtNow}${unit} (전월: ${fmtPrev}${unit})`,
-    delta:`<span class="${cls}">${arrow} ${fmtDelta}${unit} ${pctText}</span>`
-  };
+  return { line:`당월: ${fmtNow}${unit} (전월: ${fmtPrev}${unit})`, delta:`<span class="${cls}">${arrow} ${fmtDelta}${unit} ${pctText}</span>` };
 }
 
 function renderReport(cur){
@@ -636,13 +656,11 @@ function renderReport(cur){
   holLine.textContent=H.line; holPayNow.textContent=nowHolPay.toLocaleString(); holPayDelta.innerHTML=H.delta;
   sumPayNow.textContent=nowSumPay.toLocaleString(); sumPayDelta.innerHTML=T.delta;
 
-  // 전월/당월 시간 분해 (전월 개별 업로드시엔 적용시간만 있을 수 있음)
-  const prevOverH = prevMetrics ? (M.overHours ? M.overHours : 0) : 0; // 시간 분해 없음 → 0 처리
+  const prevOverH = prevMetrics ? (M.overHours ? M.overHours : 0) : 0; // 분해 불가시 0
   const prevHolH  = prevMetrics ? (M.holHours  ? M.holHours  : 0) : 0;
   const nowOtherH = Math.max(0, nowApplied - (M.overHours + M.holHours));
   const prevOtherH= Math.max(0, prevApplied - (prevOverH + prevHolH));
 
-  // 도넛: 전월(옅은 톤), 당월(강한 톤)
   drawDoughnut(donutPrev, ['연장시간','휴일시간','기타'], [prevOverH, prevHolH, prevOtherH],
                ['rgba(239,68,68,0.32)','rgba(37,99,235,0.32)','rgba(229,231,235,0.45)']);
   drawDoughnut(donutNow,  ['연장시간','휴일시간','기타'], [M.overHours, M.holHours, nowOtherH],
@@ -651,7 +669,6 @@ function renderReport(cur){
   prevInfo.textContent=`연장시간 ${prevOverH.toFixed(1)}h · 휴일시간 ${prevHolH.toFixed(1)}h · 총수당 ${(prevSumPay||0).toLocaleString()}원`;
   nowInfo.textContent =`연장시간 ${M.overHours.toFixed(1)}h · 휴일시간 ${M.holHours.toFixed(1)}h · 총수당 ${nowSumPay.toLocaleString()}원`;
 
-  // 막대: 전월(파랑) vs 당월(연한 빨강) + 값 라벨
   drawGroupedBars(barHours, ['적용시간(h)','연장시간(h)','휴일시간(h)'],
                   [prevApplied, prevOverH, prevHolH],
                   [nowApplied,  M.overHours, M.holHours], false);
@@ -663,23 +680,68 @@ function renderReport(cur){
   updatePrevBadge();
 }
 
-/* ===== 테이블 & 소계 ===== */
+/* ===== 테이블 렌더링 (근태정리 원복 버전) ===== */
 const tblStatus=$('tblStatus'), tblSummary=$('tblSummary'), tblNext=$('tblNext');
-function renderTable(el, rows, opts={}){
-  if(!rows||!rows.length){ el.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
+
+function renderStatusTable(rows){
+  if(!rows?.length){ tblStatus.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
   const cols=Object.keys(rows[0]);
   let thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
-  let bodyRows = rows.map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('');
-  if(opts.subtotal){
-    const st = opts.subtotal;
-    const sums={}; st.keys.forEach(k=> sums[k]= rows.reduce((a,b)=> a + (Number(b[k])||0), 0));
-    let sub = {}; cols.forEach((c,idx)=>{ if(idx===0) sub[c]='소계'; else if(st.keys.includes(c)) sub[c]=sums[c]; else sub[c]=''; });
-    bodyRows += '<tr>'+cols.map(c=>`<td><b>${sub[c]??''}</b></td>`).join('')+'</tr>';
-  }
-  el.innerHTML = thead + '<tbody>'+bodyRows+'</tbody>';
+  // 소계
+  const sumKeys=['근무시간','휴게시간','적용시간','정수'];
+  const sums={}; sumKeys.forEach(k=> sums[k]= rows.reduce((a,b)=> a+(Number(b[k])||0),0));
+  const body=rows.map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('')
+    + '<tr>'+cols.map(c=>`<td><b>${sumKeys.includes(c)?sums[c].toLocaleString(): (c==='순번'?'소계':'')}</b></td>`).join('')+'</tr>';
+  tblStatus.innerHTML=thead+'<tbody>'+body+'</tbody>';
 }
 
-/* ===== 시뮬레이션 버튼 ===== */
+function renderSummaryTable(rows){
+  if(!rows?.length){ tblSummary.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
+  // 원하는 컬럼 순서
+  const order=['순번','부서','이름','근무시간','휴게시간','적용시간',
+               '평일연장','평일야간','시간외수당',
+               '휴일일반','휴일연장','휴일야간','휴일연장야간','휴일수당'];
+  const cols=order.filter(c=>c in rows[0]);
+  // 머리
+  let thead='<thead><tr>'+cols.map(c=>{
+    const cls = (['평일연장','평일야간','시간외수당'].includes(c))?'col-ot'
+              : (['휴일일반','휴일연장','휴일야간','휴일연장야간','휴일수당'].includes(c)?'col-hol':'');
+    return `<th class="${cls}">${c}</th>`;
+  }).join('')+'</tr></thead>';
+
+  // 몸통(2행~소계 전까지 옅은 배경)
+  const moneyCols=new Set(['시간외수당','휴일수당']);
+  const bodyRows=rows.map((r,ri)=>{
+    return '<tr>'+cols.map(c=>{
+      const val = moneyCols.has(c)? Number(r[c]||0).toLocaleString() : (r[c]??'');
+      const cls = (['평일연장','평일야간','시간외수당'].includes(c))?'col-ot'
+                : (['휴일일반','휴일연장','휴일야간','휴일연장야간','휴일수당'].includes(c)?'col-hol':'');
+      const shade = (ri>=1)? ' style="background:'+ (cls==='col-ot'?'var(--grp-ot)':'') + (cls==='col-hol'?'var(--grp-hol)':'') + ';"' : '';
+      return `<td class="${cls}"${shade}>${val}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
+
+  // 소계
+  const sumKeys=['근무시간','휴게시간','적용시간','시간외수당','휴일수당'];
+  const sums={}; sumKeys.forEach(k=> sums[k]= rows.reduce((a,b)=> a+(Number(b[k])||0),0));
+  const subtotal='<tr class="subtotal-row">'+cols.map(c=>{
+    if(c==='순번') return '<td>소계</td>';
+    if(sumKeys.includes(c)) return `<td class="subtotal">${(c.includes('수당')?Number(sums[c]).toLocaleString():sums[c].toFixed(2))}</td>`;
+    return '<td class="subtotal"></td>';
+  }).join('')+'</tr>';
+
+  tblSummary.innerHTML=thead+'<tbody>'+bodyRows+subtotal+'</tbody>';
+}
+
+function renderNextTable(rows){
+  if(!rows?.length){ tblNext.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
+  const cols=Object.keys(rows[0]);
+  let thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
+  let body=rows.map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('');
+  tblNext.innerHTML=thead+'<tbody>'+body+'</tbody>';
+}
+
+/* ===== 실행 버튼 ===== */
 let dfStatus=[], dfSummary=[], dfNext=[];
 $('startSim').addEventListener('click', ()=>{
   try{
@@ -688,9 +750,9 @@ $('startSim').addEventListener('click', ()=>{
     dfStatus=cur.status; dfSummary=cur.summary; dfNext=cur.next;
 
     renderReport(cur);
-    renderTable(tblStatus,  cur.status,  {subtotal:{keys:['근무시간','휴게시간','적용시간','정수']}});
-    renderTable(tblSummary, cur.summary, {subtotal:{keys:['근무시간','휴게시간','적용시간','시간외수당','휴일수당']}});
-    renderTable(tblNext,    cur.next);
+    renderStatusTable(cur.status);
+    renderSummaryTable(cur.summary);
+    renderNextTable(cur.next);
 
     showToast('시뮬레이션 완료'); gotoStep(2);
   }catch(err){ showToast('시뮬레이션 실패: '+err.message); console.error(err); }
