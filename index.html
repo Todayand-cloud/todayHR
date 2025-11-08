@@ -190,13 +190,13 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
     <div class="chart-row">
       <div class="chart-box" style="width:820px">
         <canvas id="barHours"></canvas>
-        <p style="margin:.6rem 0 0">시간 비교(적용·연장·휴일) — 전월(파랑) vs 당월(연한 빨강)</p>
+        <p style="margin:.6rem 0 0">시간 비교 — 전월(파랑) vs 당월(빨강)</p>
       </div>
     </div>
     <div class="chart-row">
       <div class="chart-box" style="width:820px">
         <canvas id="barPays"></canvas>
-        <p style="margin:.6rem 0 0">수당 비교(총·시간외·휴일) — 전월(파랑) vs 당월(연한 빨강)</p>
+        <p style="margin:.6rem 0 0">수당 비교 — 전월(파랑) vs 당월(빨강)</p>
       </div>
     </div>
   </div>
@@ -457,7 +457,7 @@ function drawBars(ctx, labels, prev, now, isMoney){
           anchor:'end',align:'end',offset:4,
           color:'#111827',
           backgroundColor:'rgba(220,235,255,0.68)',
-          font:{weight:'bold',size:15}, /* ← 17에서 15로 */
+          font:{weight:'bold',size:13}, /* ← 15에서 13로 */
           borderRadius:8,
           padding:{top:4,bottom:4,left:8,right:8},
           borderWidth:2,
@@ -514,7 +514,7 @@ function renderSummaryTable(rows){
     overCols.forEach((c,idx)=>{
       const isLast = (idx===overCols.length-1);
       const cls = idx===0 ? 'grp-over-first' : (isLast?'grp-over-last':'grp-over-mid');
-      const bg  = (isLast && i>=1) ? ' bg-over' : ''; // 2행부터 소계 전까지(여기서는 소계 제외 처리하므로 데이터구간 전체, 소계는 아래)
+      const bg  = (isLast && i>=0) ? ' bg-over' : ''; // 2행부터 소계 전까지(여기서는 소계 제외 처리하므로 데이터구간 전체, 소계는 아래)
       const val = c.includes('수당')? number(r[c]).toLocaleString() : r[c];
       body+=`<td class="${cls}${bg}">${val??''}</td>`;
     });
@@ -522,7 +522,7 @@ function renderSummaryTable(rows){
     holCols.forEach((c,idx)=>{
       const isLast = (idx===holCols.length-1);
       const cls = idx===0 ? 'grp-hol-first' : (isLast?'grp-hol-last':'grp-hol-mid');
-      const bg  = (isLast && i>=1) ? ' bg-hol' : '';
+      const bg  = (isLast && i>=0) ? ' bg-hol' : '';
       const val = c.includes('수당')? number(r[c]).toLocaleString() : r[c];
       body+=`<td class="${cls}${bg}">${val??''}</td>`;
     });
