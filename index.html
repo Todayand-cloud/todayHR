@@ -377,27 +377,45 @@ function process(attRows, wageRows){
   const status=[], agg={}, nextRows=[];
   const ensure=(name,dept)=>{ if(!agg[name]) agg[name]={부서:dept,이름:name,근무시간:0,휴게시간:0,적용시간:0,평일연장:0,평일야간:0,휴일일반:0,휴일연장:0,휴일야간:0,휴일연장야간:0}; };
   for(const r of attRows){
-    if(String(r['상태']||'').includes('반려')) continue;
-    const raw=String(r['신청시간']||''); if(!raw.includes('~')) continue;
-    let [s,e]=raw.split('~').map(x=>x.trim()); let sh=parseTime(s), eh=parseTime(e); if(sh<0||eh<0) continue; if(eh<sh) eh+=24;
-    const work=eh-sh;
-    const brk = work>4 ? 1 : 0;
-    const applied=work-brk;
+  if(String(r['상태']||'').includes('반려')) continue;
+  const raw=String(r['신청시간']||''); if(!raw.includes('~')) continue;
+  let [s,e]=raw.split('~').map(x=>x.trim()); 
+  let sh=parseTime(s), eh=parseTime(e); 
+  if(sh<0||eh<0) continue; 
+  if(eh<sh) eh+=24;
 
-    const closed = String(r['종결일자']||'').trim();
-    if(!closed){
-      nextRows.push({
-        부서: r['근무자 부서'], 이름: r['근무자'], 근무일자: r['근무일'], 근무유형: r['근무유형'],
-        신청시간: raw, 근무시작시간: fmtHM(sh), 근무종료시간: fmtHM(eh),
-        근무시간:+work.toFixed(2), 휴게시간:+brk.toFixed(2), 적용시간:+applied.toFixed(2),
-        종결일자:'', 비고:'미종결(종결일자 공란)'
-      });
-    }
+  const work=eh-sh, brk=Math.floor(work/5), applied=work-brk;
+  const rowData = {
+    부서: r['근무자 부서'],
+    이름: r['근무자'],
+    근무일자: r['근무일'],
+    근무유형: r['근무유형'],
+    근무시작시간: fmtHM(sh),
+    근무종료시간: fmtHM(eh),
+    근무시간: +work.toFixed(2),
+    휴게시간: +brk.toFixed(2),
+    적용시간: +applied.toFixed(2),
+    정수: ceilHalf(applied),
+  };
+  status.push(rowData);
 
-    status.push({부서:r['근무자 부서'],이름:r['근무자'],근무일자:r['근무일'],근무유형:r['근무유형'],
-      근무시작시간:fmtHM(sh),근무종료시간:fmtHM(eh),근무시간:+work.toFixed(2),휴게시간:+brk.toFixed(2),적용시간:+applied.toFixed(2),정수:ceilHalf(applied)});
-    const nm=String(r['근무자']||'').replace('(IT)','').trim(); if(!nm) continue; const dept=String(r['근무자 부서']||'').trim(); const ty=String(r['근무유형']||'').toLowerCase();
-    ensure(nm,dept); const A=agg[nm]; A.근무시간+=work; A.휴게시간+=brk; A.적용시간+=applied;
+  // ✅ 종결일자 공란이면 익월적용으로 이동, 합산 제외
+  if (!r['종결일자'] || String(r['종결일자']).trim() === '') {
+    dfNext.push(rowData);
+    continue;
+  }
+
+  // 이하 기존 집계 로직
+  const nm = String(r['근무자'] || '').replace('(IT)', '').trim(); 
+  if (!nm) continue;
+  const dept = r['근무자 부서']; 
+  const ty = String(r['근무유형'] || '').toLowerCase();
+
+  ensure(nm, dept);
+  const A = agg[nm];
+  A.근무시간 += work;
+  A.휴게시간 += brk;
+  A.적용시간 += applied;
     let effStart=sh+brk; if(effStart>eh) effStart=eh;
     for(let t=effStart; t<eh-1e-6; t+=0.25){
       const hod=hourMod24(t); const worked=t-effStart;
