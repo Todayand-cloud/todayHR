@@ -579,6 +579,8 @@ $('btnSaveAll').addEventListener('click', ()=>{ if(!dfStatus.length||!dfSummary.
 
 /* === 리포트(변경 없음) === */
 function renderReport(now, prev){
+  const hasPrev = !!(prev && (prev.totalPay || prev.appliedTotal));
+
   function deltaArrow(val, prevVal) {
     const diff = (val || 0) - (prevVal || 0);
     const pct = (prevVal ? diff / prevVal * 100 : 0);
@@ -586,38 +588,86 @@ function renderReport(now, prev){
     const color = diff >= 0 ? '#ef4444' : '#2563eb';
     return {arrow, diff, pct, color};
   }
-  $('appliedNow').textContent = (now.appliedTotal||0).toFixed(1)+'h';
-  $('appliedPrev').textContent = `(전월: ${(prev.appliedTotal||0).toFixed(1)}h)`;
-  const applied = deltaArrow(now.appliedTotal, prev.appliedTotal);
-  $('appliedDelta').innerHTML = `<span style="color:${applied.color};font-weight:800;">${applied.arrow} ${Math.abs(applied.diff).toFixed(1)}h (${applied.pct.toFixed(1)}%)</span>`;
 
-  $('overPayNow').textContent = (now.overPay||0).toLocaleString();
-  $('overPayPrev').textContent = `(전월: ${(prev.overPay||0).toLocaleString()}원)`;
-  const overPay = deltaArrow(now.overPay, prev.overPay);
-  $('overPayDelta').innerHTML = `<span style="color:${overPay.color};font-weight:800;">${overPay.arrow} ${Math.abs(overPay.diff).toLocaleString()}원 (${overPay.pct.toFixed(1)}%)</span>`;
+  // 총 수당(큰 타이틀)
+  $('sumTitle').textContent = `총 수당(시간외+휴일) ${(now.totalPay || 0).toLocaleString()}원`;
 
-  $('holPayNow').textContent = (now.holPay||0).toLocaleString();
-  $('holPayPrev').textContent = `(전월: ${(prev.holPay||0).toLocaleString()}원)`;
-  const holPay = deltaArrow(now.holPay, prev.holPay);
-  $('holPayDelta').innerHTML = `<span style="color:${holPay.color};font-weight:800;">${holPay.arrow} ${Math.abs(holPay.diff).toLocaleString()}원 (${holPay.pct.toFixed(1)}%)</span>`;
+  // 적용시간 Now
+  $('appliedNow').textContent = (now.appliedTotal || 0).toFixed(1) + 'h';
+  // 시간외수당 Now
+  $('overPayNow').textContent = (now.overPay || 0).toLocaleString();
+  // 휴일수당 Now
+  $('holPayNow').textContent = (now.holPay || 0).toLocaleString();
 
-  $('sumTitle').textContent = `총 수당(시간외+휴일) ${(now.totalPay||0).toLocaleString()}원`;
-  $('sumMeta').textContent  = `(전월: ${(prev.totalPay||0).toLocaleString()}원)`;
-  const d=(now.totalPay||0)-(prev.totalPay||0); const p=(prev.totalPay? d/prev.totalPay*100:0);
-  const arrow=d>=0?'▲':'▼'; const col=d>=0?'#ef4444':'#2563eb'; $('sumDelta').style.color=col; $('sumDelta').textContent=`${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
+  if (hasPrev) {
+    // 전월 표기 + 증감(적용/시간외/휴일)
+    const applied = deltaArrow(now.appliedTotal, prev.appliedTotal);
+    $('appliedPrev').textContent = `(전월: ${(prev.appliedTotal||0).toFixed(1)}h)`;
+    $('appliedDelta').innerHTML =
+      `<span style="color:${applied.color};font-weight:800;">${applied.arrow} ${Math.abs(applied.diff).toFixed(1)}h (${applied.pct.toFixed(1)}%)</span>`;
 
-  const pct=(n,t)=> t? Math.round(n/t*100):0;
-  const prevT=(prev.overHours||0)+(prev.holHours||0), nowT=(now.overHours||0)+(now.holHours||0);
-  drawDoughnut(donutPrev,['연장시간','휴일시간'],[pct(prev.overHours,prevT),pct(prev.holHours,prevT)],[ '#fecaca', '#bfdbfe' ]);
-  drawDoughnut(donutNow, ['연장시간','휴일시간'],[pct(now.overHours,nowT),pct(now.holHours,nowT)],[ '#ef4444', '#2563eb' ]);
-  drawBars(barHours,['적용시간(h)','연장시간(h)','휴일시간(h)'],
-          [prev.appliedTotal||0,prev.overHours||0,prev.holHours||0],
-          [now.appliedTotal||0, now.overHours||0, now.holHours||0], false);
-  drawBars(barPays,['총수당(원)','시간외수당(원)','휴일수당(원)'],
-          [prev.totalPay||0,prev.overPay||0,prev.holPay||0],
-          [now.totalPay||0, now.overPay||0, now.holPay||0], true);
+    const overPay = deltaArrow(now.overPay, prev.overPay);
+    $('overPayPrev').textContent = `(전월: ${(prev.overPay||0).toLocaleString()}원)`;
+    $('overPayDelta').innerHTML =
+      `<span style="color:${overPay.color};font-weight:800;">${overPay.arrow} ${Math.abs(overPay.diff).toLocaleString()}원 (${overPay.pct.toFixed(1)}%)</span>`;
+
+    const holPay = deltaArrow(now.holPay, prev.holPay);
+    $('holPayPrev').textContent = `(전월: ${(prev.holPay||0).toLocaleString()}원)`;
+    $('holPayDelta').innerHTML =
+      `<span style="color:${holPay.color};font-weight:800;">${holPay.arrow} ${Math.abs(holPay.diff).toLocaleString()}원 (${holPay.pct.toFixed(1)}%)</span>`;
+
+    // 헤더 카드 하단 (전월/증감)
+    $('sumMeta').textContent = `(전월: ${(prev.totalPay||0).toLocaleString()}원)`;
+    const d = (now.totalPay || 0) - (prev.totalPay || 0);
+    const p = (prev.totalPay ? d / prev.totalPay * 100 : 0);
+    const arrow = d >= 0 ? '▲' : '▼';
+    const col = d >= 0 ? '#ef4444' : '#2563eb';
+    $('sumDelta').style.color = col;
+    $('sumDelta').textContent = `${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
+
+    // 차트(전월/당월 비교)
+    const pct = (n, t) => t ? Math.round(n / t * 100) : 0;
+    const prevT = (prev.overHours || 0) + (prev.holHours || 0);
+    const nowT  = (now.overHours  || 0) + (now.holHours  || 0);
+    drawDoughnut(donutPrev, ['연장시간', '휴일시간'],
+      [pct(prev.overHours, prevT), pct(prev.holHours, prevT)],
+      ['#fecaca', '#bfdbfe']);
+    drawDoughnut(donutNow, ['연장시간', '휴일시간'],
+      [pct(now.overHours, nowT), pct(now.holHours, nowT)],
+      ['#ef4444', '#2563eb']);
+    drawBars(barHours, ['적용시간(h)', '연장시간(h)', '휴일시간(h)'],
+      [prev.appliedTotal || 0, prev.overHours || 0, prev.holHours || 0],
+      [now.appliedTotal || 0, now.overHours || 0, now.holHours || 0], false);
+    drawBars(barPays, ['총수당(원)', '시간외수당(원)', '휴일수당(원)'],
+      [prev.totalPay || 0, prev.overPay || 0, prev.holPay || 0],
+      [now.totalPay || 0, now.overPay || 0, now.holPay || 0], true);
+
+  } else {
+    // 전월 데이터 없음: 전월/증감 숨김
+    $('appliedPrev').textContent = '(전월 데이터 없음)';
+    $('appliedDelta').textContent = '';
+
+    $('overPayPrev').textContent = '(전월 데이터 없음)';
+    $('overPayDelta').textContent = '';
+
+    $('holPayPrev').textContent = '(전월 데이터 없음)';
+    $('holPayDelta').textContent = '';
+
+    $('sumMeta').textContent = '(전월 데이터 없음)';
+    $('sumDelta').textContent = '';
+
+    // 차트: 전월은 비움, 당월만 원형 표시
+    if (donutPrev && donutPrev._chart) { donutPrev._chart.destroy(); }
+    const ctxH = barHours.getContext('2d');
+    const ctxP = barPays.getContext('2d');
+    ctxH.clearRect(0, 0, barHours.width, barHours.height);
+    ctxP.clearRect(0, 0, barPays.width, barPays.height);
+
+    drawDoughnut(donutNow, ['연장시간', '휴일시간'],
+      [(now.overHours || 0), (now.holHours || 0)],
+      ['#ef4444', '#2563eb']);
+  }
 }
-
 /* === 실행(변경 없음) === */
 $('btnRun').addEventListener('click', ()=>{
   try{
