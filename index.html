@@ -46,8 +46,16 @@ input[type=file]{display:none}
 .chart-box{width:460px;max-width:45vw;text-align:center}
 .chart-box canvas{max-height:240px}
 .chart-box p{font-size:15px;font-weight:800;margin:.6rem 0 0}
-.sum-card h2{margin:0;font-size:22px}
-.sum-meta{line-height:1.95;margin-top:4px}
+sum-card h2{margin:0;font-size:22px}
+
+/* 헤더 카드 줄 간격/여백 통일 */
+.sum-card .sum-meta { 
+  margin: 6px 0 0;   /* 위로만 일정 여백 */
+  line-height: 1.9; 
+}
+#sumDelta { 
+  margin-top: 10px;  /* 증감 라인은 살짝 더 띄움 */
+}
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid var(--line);padding:8px 10px;text-align:center;font-size:.92rem;background:#fff}
 th{background:#f3f4f6}
@@ -594,7 +602,7 @@ function renderReport(now, prev){
   $('holPayDelta').innerHTML = `<span style="color:${holPay.color};font-weight:800;">${holPay.arrow} ${Math.abs(holPay.diff).toLocaleString()}원 (${holPay.pct.toFixed(1)}%)</span>`;
 
   $('sumTitle').textContent = `총 수당(시간외+휴일) ${(now.totalPay||0).toLocaleString()}원`;
-  $('sumMeta').textContent  = `당월: ${(now.totalPay||0).toLocaleString()}원 (전월: ${(prev.totalPay||0).toLocaleString()}원)`;
+  $('sumMeta').textContent  = `(전월: ${(prev.totalPay||0).toLocaleString()}원)`;
   const d=(now.totalPay||0)-(prev.totalPay||0); const p=(prev.totalPay? d/prev.totalPay*100:0);
   const arrow=d>=0?'▲':'▼'; const col=d>=0?'#ef4444':'#2563eb'; $('sumDelta').style.color=col; $('sumDelta').textContent=`${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
 
