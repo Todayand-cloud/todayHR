@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <style>
-:root{--bg:#f6f8fb;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;--accent1:#2563eb;--accent2:#ef4444;--ok:#16a34a;--dark:#111827;--softblue:#e6efff;--softred:#ffe7e7}
+:root{--bg:#f6f8fb;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;--accent1:#2563eb;--accent2:#ef4444;--ok:#16a34a;--dark:#111827;--softblue:#e6efff;--softred:#ffe7e7;}
 *{box-sizing:border-box}
 body{font-family:'Pretendard','Noto Sans KR',system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);margin:0;color:var(--ink)}
 header{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;font-weight:800}
@@ -69,7 +69,6 @@ select{width:100%;padding:8px;border:1px solid var(--line);border-radius:10px}
 </head>
 <body>
 <header>ATEC 인사관리(근태) 프로그램</header>
-<div id="diag" style="display:none;padding:8px 14px;background:#fff7ed;border-bottom:1px solid #f59e0b;color:#7c2d12;font-size:12px">진단: 라이브러리 로딩 상태 — XLSX:<span id="dX">?</span>, FileSaver:<span id="dF">?</span>, Chart.js:<span id="dC">?</span>, Datalabels:<span id="dD">?</span></div>
 <div class="topbar">
   <div class="stepper">
     <div class="step active" data-step="1"><div class="num">1</div>업로드</div>
@@ -223,6 +222,7 @@ select{width:100%;padding:8px;border:1px solid var(--line);border-radius:10px}
   </div>
 </section>
 </main>
+
 <!-- 헤더 매핑 모달 -->
 <div class="modal" id="mapModal">
   <div class="panel">
@@ -236,10 +236,20 @@ select{width:100%;padding:8px;border:1px solid var(--line);border-radius:10px}
   </div>
 </div>
 <div id="toast" class="toast"></div>
+
 <script>
-try{ if(window.ChartDataLabels){ Chart.register(ChartDataLabels); } }catch(e){ console.warn('ChartDataLabels not ready', e); }
+// ---- plugin registration guard (핫픽스 1)
+try{
+  if(window.Chart && window.ChartDataLabels){
+    Chart.register(ChartDataLabels);
+  }
+}catch(e){
+  console.warn('ChartDataLabels not ready', e);
+}
+
+// ---- utils
 const $=id=>document.getElementById(id);
-const showToast=(m)=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
+const showToast=(m)=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
 const number = v => { const n = Number(String(v??'').toString().replace(/[, ]/g,'')); return isNaN(n)?0:n; };
 const hourMod24 = t => t - 24*Math.floor(t/24);
 function parseTime(s){
@@ -255,7 +265,8 @@ function parseTime(s){
 const ceilHalf=x=> Math.ceil(Number(x)/0.5)*0.5;
 const fmtHM=d=>{const h=Math.floor(d)%24;const m=Math.round((d-Math.floor(d))*60)%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
 const sum=(rows,key)=> rows.reduce((a,r)=> a + number(r[key]), 0);
-/* ===== 헤더 매핑 ===== */
+
+// ---- mapping dictionaries
 const REQUIRED_ATT=["신청시간","근무자 부서","근무자","근무일","근무유형","종결일자","상태"];
 const REQUIRED_WAGE=["부서","이름","통상시급"];
 const SYN={
@@ -272,7 +283,7 @@ const SYN={
 };
 function guessMap(required, cols){
   const m={}; required.forEach(k=>{
-    const l=cols.map(c=>c.toLowerCase());
+    const l=cols.map(c=>String(c||'').toLowerCase());
     const idx1=l.indexOf(k.toLowerCase());
     if(idx1>-1){ m[k]=cols[idx1]; return; }
     const alt=(SYN[k]||[]).map(s=>s.toLowerCase());
@@ -305,14 +316,17 @@ function openMapper(title, required, cols){
   });
 }
 function normalizeRows(rows, mapping){ return rows.map(r=>{ const o={}; for(const k in mapping){ o[k]=r[mapping[k]]; } return o; }); }
-/* ===== 업로드 상태 ===== */
+
+// ---- state
 let curAttRows=[], curWageRows=[];
 let prevAttRows=[], prevWageRows=[];
 let prevMergedMetrics=null;
 let dfStatus=[], dfSummary=[], dfNext=[];
+
+// ---- readers (핫픽스 3: XLSX 미로드 메시지)
 function readExcel(file, preferSheets=[]){
   return new Promise((resolve,reject)=>{
-    if(typeof XLSX==='undefined'){ return reject(new Error('XLSX 라이브러리를 불러오지 못했습니다. (사내망 차단 가능)')); }
+    if(typeof XLSX==='undefined'){ return reject(new Error('Excel 라이브러리가 로드되지 않았습니다. (네트워크/CDN 차단)')); }
     const fr=new FileReader();
     fr.onload=e=>{
       try{
@@ -324,41 +338,8 @@ function readExcel(file, preferSheets=[]){
     }; fr.readAsArrayBuffer(file);
   });
 }
-// CSV 대비: 라이브러리 없어도 CSV는 파싱
-function readCSV(file){
-  return new Promise((resolve,reject)=>{
-    const fr=new FileReader();
-    fr.onload=e=>{
-      try{
-        const text = e.target.result||'';
-        const lines = text.replace(/
-?|
-/g,'
-').split('
-').filter(Boolean);
-        if(!lines.length) return resolve({rows:[]});
-        const headers = lines[0].split(',').map(h=>h.trim());
-        const rows = lines.slice(1).map(line=>{
-          const cells = line.split(',');
-          const obj={}; headers.forEach((h,i)=> obj[h]=cells[i]??null); return obj;
-        });
-        resolve({rows});
-      }catch(err){reject(err);}
-    }; fr.readAsText(file,'utf-8');
-  });
-}
-async function readAny(file, preferSheets=[]){
-  const name=(file.name||'').toLowerCase();
-  if(name.endsWith('.csv')) return readCSV(file);
-  return readExcel(file, preferSheets);
-});
-        let ws=null; for(const n of preferSheets){ if(wb.Sheets[n]){ ws=wb.Sheets[n]; break; } }
-        if(!ws) ws=wb.Sheets[wb.SheetNames[0]];
-        resolve({wb, rows:XLSX.utils.sheet_to_json(ws,{defval:null})});
-      }catch(err){reject(err);}
-    }; fr.readAsArrayBuffer(file);
-  });
-}
+
+// ---- UI helpers
 function flashLabel(forId){ const lab=document.querySelector(`label[for="${forId}"]`); if(!lab) return; lab.classList.remove('flash'); void lab.offsetWidth; lab.classList.add('flash'); }
 function attachPicker(inputId, nameId, handler){
   const inp=$(inputId), name=$(nameId);
@@ -366,150 +347,31 @@ function attachPicker(inputId, nameId, handler){
     const f=e.target.files && e.target.files[0]; if(!f){ name.textContent='선택된 파일 없음'; return; }
     name.textContent='분석 중…';
     try{ await handler(f, name, inputId); flashLabel(inputId); }
-    catch(err){ console.error(err); showToast('실패: '+err.message); name.textContent='실패'; }
+    catch(err){ console.error(err); showToast('업로드 실패: '+err.message); name.textContent='실패'; }
     finally{ e.target.value=''; }
   });
 }
-/* 당월 RAW */
-attachPicker('curAtt','curAttName', async (file, name)=>{
-  const {rows}=await readAny(file);
-  if(!rows.length) throw new Error('데이터가 비어있습니다.');
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_ATT.every(h=>cols.includes(h))){
-    const map=await openMapper('당월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
-    curAttRows = normalizeRows(rows, map);
-  }else curAttRows=rows;
-  name.textContent=`선택 완료 · ${file.name} (${curAttRows.length}행)`; updateRunBtn();
-});
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_ATT.every(h=>cols.includes(h))){
-    const map=await openMapper('당월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
-    curAttRows = normalizeRows(rows, map);
-  }else curAttRows=rows;
-  name.textContent=`선택 완료 · ${file.name} (${curAttRows.length}행)`; updateRunBtn();
-});
-/* 당월 통상시급 */
-attachPicker('curWage','curWageName', async (file, name)=>{
-  const {rows}=await readAny(file);
-  if(!rows.length) throw new Error('데이터가 비어있습니다.');
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
-    const map=await openMapper('당월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
-    curWageRows = normalizeRows(rows, map);
-  }else curWageRows=rows;
-  name.textContent=`선택 완료 · ${file.name} (${curWageRows.length}행)`; updateRunBtn();
-});
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
-    const map=await openMapper('당월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
-    curWageRows = normalizeRows(rows, map);
-  }else curWageRows=rows;
-  name.textContent=`선택 완료 · ${file.name} (${curWageRows.length}행)`; updateRunBtn();
-});
-/* 전월 RAW */
-attachPicker('prevAtt','prevAttName', async (file, name)=>{
-  const {rows}=await readAny(file);
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_ATT.every(h=>cols.includes(h))){
-    const map=await openMapper('전월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
-    prevAttRows = normalizeRows(rows, map);
-  }else prevAttRows=rows;
-  prevMergedMetrics=null;
-  name.textContent=`전월 RAW 선택 · ${file.name} (${prevAttRows.length}행)`;
-});
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_ATT.every(h=>cols.includes(h))){
-    const map=await openMapper('전월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
-    prevAttRows = normalizeRows(rows, map);
-  }else prevAttRows=rows;
-  prevMergedMetrics=null;
-  name.textContent=`전월 RAW 선택 · ${file.name} (${prevAttRows.length}행)`;
-});
-/* 전월 통상시급 */
-attachPicker('prevWage','prevWageName', async (file, name)=>{
-  const {rows}=await readAny(file);
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
-    const map=await openMapper('전월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
-    prevWageRows = normalizeRows(rows, map);
-  }else prevWageRows=rows;
-  prevMergedMetrics=null;
-  name.textContent=`전월 통상시급 선택 · ${file.name} (${prevWageRows.length}행)`;
-});
-  const cols=Object.keys(rows[0]||{});
-  if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
-    const map=await openMapper('전월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
-    prevWageRows = normalizeRows(rows, map);
-  }else prevWageRows=rows;
-  prevMergedMetrics=null;
-  name.textContent=`전월 통상시급 선택 · ${file.name} (${prevWageRows.length}행)`;
-});
-/* 전월 통합자료(권장) */
-attachPicker('prevMerged','prevMergedName', async (file, name)=>{
-  if(typeof XLSX==='undefined'){ throw new Error('전월 통합자료(근태정리 시트)는 XLSX 라이브러리가 필요합니다. 사내망 차단 시 CSV로 추출하여 업로드하거나 오프라인 번들 버전을 사용하세요.'); }
-  const {wb}=await readExcel(file, ['근태정리']);
-  if(!wb.Sheets['근태정리']) throw new Error('근태정리 시트를 찾을 수 없습니다.');
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets['근태정리'],{defval:null});
-  const subtotal = rows.find(r=> Object.values(r).some(v=> String(v).includes('소계')));
-  const sumCols=(keys)=> subtotal
-    ? keys.reduce((a,k)=> a + number(subtotal[k]), 0)
-    : rows.reduce((a,r)=> a + keys.reduce((s,k)=> s + number(r[k]),0), 0);
-  const overHours = sumCols(['평일연장','평일야간']);
-  const holHours  = sumCols(['휴일일반','휴일연장','휴일야간','휴일연장야간']);
-  const overPay   = sumCols(['시간외수당']);
-  const holPay    = sumCols(['휴일수당']);
-  const appliedTotal = rows.reduce((a,r)=> a + number(r['적용시간']), 0) || (overHours+holHours);
-  prevMergedMetrics = {appliedTotal,overHours,holHours,overPay,holPay,totalPay:overPay+holPay,from:file.name};
-  prevAttRows=[]; prevWageRows=[];
-  name.textContent=`전월 통합 지정 · ${file.name} (근태정리 ${rows.length}행)`; showToast('전월 통합자료가 설정되었습니다.');
-});
-  if(!wb.Sheets['근태정리']) throw new Error('근태정리 시트를 찾을 수 없습니다.');
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets['근태정리'],{defval:null});
-  const subtotal = rows.find(r=> Object.values(r).some(v=> String(v).includes('소계')));
-  const sumCols=(keys)=> subtotal
-    ? keys.reduce((a,k)=> a + number(subtotal[k]), 0)
-    : rows.reduce((a,r)=> a + keys.reduce((s,k)=> s + number(r[k]),0), 0);
-
-  const overHours = sumCols(['평일연장','평일야간']);
-  const holHours  = sumCols(['휴일일반','휴일연장','휴일야간','휴일연장야간']);
-  const overPay   = sumCols(['시간외수당']);
-  const holPay    = sumCols(['휴일수당']);
-  const appliedTotal = rows.reduce((a,r)=> a + number(r['적용시간']), 0) || (overHours+holHours);
-
-  prevMergedMetrics = {appliedTotal,overHours,holHours,overPay,holPay,totalPay:overPay+holPay,from:file.name};
-  prevAttRows=[]; prevWageRows=[];
-  name.textContent=`전월 통합 지정 · ${file.name} (근태정리 ${rows.length}행)`; showToast('전월 통합자료가 설정되었습니다.');
-});
 function updateRunBtn(){ $('btnRun').disabled = !(curAttRows.length && curWageRows.length); }
-/* ===== 시뮬레이션 로직(VBA 수당 복원) ===== */
+
+// ---- processing (휴게 1시간 규정 / 종결일자 공란 → 익월적용 수집 / 수당계산 매칭 보강)
 function process(attRows, wageRows){
-  const status=[], agg={};
-  const nextRows=[]; // 익월적용: 종결일자 공란 수집
+  const status=[], agg={}, nextRows=[];
   const ensure=(name,dept)=>{ if(!agg[name]) agg[name]={부서:dept,이름:name,근무시간:0,휴게시간:0,적용시간:0,평일연장:0,평일야간:0,휴일일반:0,휴일연장:0,휴일야간:0,휴일연장야간:0}; };
   for(const r of attRows){
     if(String(r['상태']||'').includes('반려')) continue;
     const raw=String(r['신청시간']||''); if(!raw.includes('~')) continue;
     let [s,e]=raw.split('~').map(x=>x.trim()); let sh=parseTime(s), eh=parseTime(e); if(sh<0||eh<0) continue; if(eh<sh) eh+=24;
     const work=eh-sh;
-    const brk = work>4 ? 1 : 0; // 4시간 초과 시 1시간 고정
+    const brk = work>4 ? 1 : 0;              // 4시간 초과 시 1시간 고정
     const applied=work-brk;
 
-    // 종결일자 공란 → 익월적용 표기용 행 추가
     const closed = String(r['종결일자']||'').trim();
     if(!closed){
       nextRows.push({
-        부서: r['근무자 부서'],
-        이름: r['근무자'],
-        근무일자: r['근무일'],
-        근무유형: r['근무유형'],
-        신청시간: raw,
-        근무시작시간: fmtHM(sh),
-        근무종료시간: fmtHM(eh),
-        근무시간: +work.toFixed(2),
-        휴게시간: +brk.toFixed(2),
-        적용시간: +applied.toFixed(2),
-        종결일자: '',
-        비고: '미종결(종결일자 공란)'
+        부서: r['근무자 부서'], 이름: r['근무자'], 근무일자: r['근무일'], 근무유형: r['근무유형'],
+        신청시간: raw, 근무시작시간: fmtHM(sh), 근무종료시간: fmtHM(eh),
+        근무시간:+work.toFixed(2), 휴게시간:+brk.toFixed(2), 적용시간:+applied.toFixed(2),
+        종결일자:'', 비고:'미종결(종결일자 공란)'
       });
     }
 
@@ -529,7 +391,8 @@ function process(attRows, wageRows){
   }
   const summary=Object.values(agg).map((A,i)=>({순번:i+1,부서:A.부서,이름:A.이름,근무시간:+A.근무시간.toFixed(2),휴게시간:+A.휴게시간.toFixed(2),적용시간:+A.적용시간.toFixed(2),
     평일연장:+A.평일연장.toFixed(2),평일야간:+A.평일야간.toFixed(2),휴일일반:+A.휴일일반.toFixed(2),휴일연장:+A.휴일연장.toFixed(2),휴일야간:+A.휴일야간.toFixed(2),휴일연장야간:+A.휴일연장야간.toFixed(2)}));
-  // 수당 계산(매칭 보강 유지)
+
+  // 수당 계산(부서|이름 → 이름만 → 부서만 순서로 매칭)
   if(wageRows && wageRows.length){
     const key = (dept,name)=>`${String(dept||'').trim()}|${String(name||'').trim()}`;
     const wageMap = new Map();
@@ -557,17 +420,20 @@ function process(attRows, wageRows){
   }
   return {status,summary,next:nextRows,metrics:{appliedTotal,overHours,holHours,overPay,holPay,totalPay:overPay+holPay}};
 }
-/* ===== 차트 ===== */
-const donutPrev=$('donutPrev'), donutNow=$('donutNow'); const barHours=$('barHours'), barPays=$('barPays');
+
+// ---- charts
+const donutPrev=document.getElementById('donutPrev'), donutNow=document.getElementById('donutNow');
+const barHours=document.getElementById('barHours'), barPays=document.getElementById('barPays');
 function drawDoughnut(ctx, labels, data, colors){
+  if(!window.Chart) return;
   if(ctx._chart) ctx._chart.destroy();
   ctx._chart=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2}]},
     options:{maintainAspectRatio:false,aspectRatio:1.2,cutout:'62%',
       plugins:{legend:{position:'bottom',labels:{boxWidth:14}},
-        datalabels:{color:'#fff',font:{weight:'700',size:14},formatter:v=>v?`${v}%`:''}}},plugins:[ChartDataLabels]});
+        datalabels:{color:'#fff',font:{weight:'700',size:14},formatter:v=>v?`${v}%`:''}}},plugins:(window.ChartDataLabels?[ChartDataLabels]:[])});
 }
-// 강화된 막대 라벨(부드러운 배경/테두리/그림자)
 function drawBars(ctx, labels, prev, now, isMoney){
+  if(!window.Chart) return;
   if(ctx._chart) ctx._chart.destroy();
   ctx._chart=new Chart(ctx,{type:'bar',
     data:{labels,datasets:[
@@ -591,9 +457,10 @@ function drawBars(ctx, labels, prev, now, isMoney){
         }
       },
       scales:{y:{beginAtZero:true,grace:'12%',ticks:{callback:v=>isMoney?Number(v).toLocaleString():v}}}
-    },plugins:[ChartDataLabels]});
+    },plugins:(window.ChartDataLabels?[ChartDataLabels]:[])});
 }
-/* ===== 테이블 렌더 ===== */
+
+// ---- table render/save
 const tblStatus=$('tblStatus'), tblSummary=$('tblSummary'), tblNext=$('tblNext');
 function renderTable(el, rows){
   if(!rows||!rows.length){ el.innerHTML='<thead><tr><th>데이터 없음</th></tr></thead>'; return; }
@@ -613,10 +480,10 @@ function renderSummaryTable(rows){
   let thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
   let body='<tbody>';
   rows.forEach((r,i)=>{
-    body+='<tr>'+baseCols.map(c=>`<td>${r[c]??''}</td>`).join('')+
-         redCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')+
-         blueCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')+
-         '</tr>';
+    body+='<tr>'+baseCols.map(c=>`<td>${r[c]??''}</td>`).join('')
+         + redCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')
+         + blueCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')
+         +'</tr>';
   });
   const subtotal = '<tr class="subtotal">'+
     '<td colspan="3">소계</td>'+
@@ -631,9 +498,9 @@ function renderNextTable(rows){
   if(!rows || !rows.length){ tblNext.innerHTML='<thead><tr><th>익월 적용 데이터 없음</th></tr></thead>'; return; }
   renderTable(tblNext, rows);
 }
-/* ===== 저장 ===== */
 function toSheet(rows){ return XLSX.utils.json_to_sheet(rows); }
 function saveXlsx(filename, sheets){
+  if(typeof XLSX==='undefined' || typeof saveAs!=='function'){ showToast('저장을 위해 XLSX/FileSaver가 필요합니다.'); return; }
   const wb=XLSX.utils.book_new();
   sheets.forEach(s=>XLSX.utils.book_append_sheet(wb, s.ws, s.name));
   const now=new Date();
@@ -645,7 +512,8 @@ $('btnSaveStatus').addEventListener('click', ()=>{ if(!dfStatus.length) return s
 $('btnSaveSummary').addEventListener('click', ()=>{ if(!dfSummary.length) return showToast('먼저 시뮬레이션을 수행하세요.'); saveXlsx('근태정리',[{name:'근태정리',ws:toSheet(dfSummary)}]); });
 $('btnSaveNext').addEventListener('click', ()=>{ if(!dfNext.length) return showToast('익월적용 데이터가 없습니다.'); saveXlsx('익월적용',[{name:'익월적용',ws:toSheet(dfNext)}]); });
 $('btnSaveAll').addEventListener('click', ()=>{ if(!dfStatus.length||!dfSummary.length) return showToast('먼저 시뮬레이션을 수행하세요.'); saveXlsx('근태_통합',[{name:'근태현황',ws:toSheet(dfStatus)},{name:'근태정리',ws:toSheet(dfSummary)},{name:'익월적용',ws:toSheet(dfNext||[])}]); });
-/* ===== 리포트 ===== */
+
+// ---- report
 function renderReport(now, prev){
   function deltaArrow(val, prevVal) {
     const diff = (val || 0) - (prevVal || 0);
@@ -654,8 +522,7 @@ function renderReport(now, prev){
     const color = diff >= 0 ? '#ef4444' : '#2563eb';
     return {arrow, diff, pct, color};
   }
-  // 적용시간 증감 표시
-  const applied = deltaArrow(now.appliedTotal, prev.appliedTotal);
+  // 적용시간
   $('appliedNow').textContent = (now.appliedTotal||0).toFixed(1)+'h';
   $('appliedPrev').textContent = `(전월: ${(prev.appliedTotal||0).toFixed(1)}h)`;
   const applied = deltaArrow(now.appliedTotal, prev.appliedTotal);
@@ -669,18 +536,18 @@ function renderReport(now, prev){
   $('holPayNow').textContent = (now.holPay||0).toLocaleString();
   $('holPayPrev').textContent = `(전월: ${(prev.holPay||0).toLocaleString()}원)`;
   const holPay = deltaArrow(now.holPay, prev.holPay);
-  $('holPayDelta').innerHTML = `<span style="color:${holPay.color};font-weight:800;">${holPay.arrow} ${Math.abs(holPay.diff).toLocaleString()}원 (${holPay.pct.toFixed(1)}%)</span>`;font-weight:800;">${holPay.arrow} ${Math.abs(holPay.diff).toLocaleString()}원 (${holPay.pct.toFixed(1)}%)</span>`;
+  $('holPayDelta').innerHTML = `<span style="color:${holPay.color};font-weight:800;">${holPay.arrow} ${Math.abs(holPay.diff).toLocaleString()}원 (${holPay.pct.toFixed(1)}%)</span>`;
+
   $('sumTitle').textContent = `총 수당(시간외+휴일) ${(now.totalPay||0).toLocaleString()}원`;
   $('sumMeta').textContent  = `당월: ${(now.totalPay||0).toLocaleString()}원 (전월: ${(prev.totalPay||0).toLocaleString()}원)`;
   const d=(now.totalPay||0)-(prev.totalPay||0); const p=(prev.totalPay? d/prev.totalPay*100:0);
   const arrow=d>=0?'▲':'▼'; const col=d>=0?'#ef4444':'#2563eb'; $('sumDelta').style.color=col; $('sumDelta').textContent=`${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
 
-  // 원형 — 전월 파스텔 / 당월 진한톤 (연장시간 vs 휴일시간 비율)
+  // 도넛/막대
   const pct=(n,t)=> t? Math.round(n/t*100):0;
   const prevT=(prev.overHours||0)+(prev.holHours||0), nowT=(now.overHours||0)+(now.holHours||0);
-  drawDoughnut(donutPrev,['연장시간','휴일시간'],[pct(prev.overHours,prevT),pct(prev.holHours,prevT)],[ '#aecbfa', '#c7d2fe' ]);
+  drawDoughnut(donutPrev,['연장시간','휴일시간'],[pct(prev.overHours,prevT),pct(prev.holHours,prevT)],[ '#fecaca', '#bfdbfe' ]);
   drawDoughnut(donutNow, ['연장시간','휴일시간'],[pct(now.overHours,nowT),pct(now.holHours,nowT)],[ '#ef4444', '#2563eb' ]);
-  // 막대 — 시간/수당
   drawBars(barHours,['적용시간(h)','연장시간(h)','휴일시간(h)'],
           [prev.appliedTotal||0,prev.overHours||0,prev.holHours||0],
           [now.appliedTotal||0, now.overHours||0, now.holHours||0], false);
@@ -688,7 +555,8 @@ function renderReport(now, prev){
           [prev.totalPay||0,prev.overPay||0,prev.holPay||0],
           [now.totalPay||0, now.overPay||0, now.holPay||0], true);
 }
-/* ===== 실행 ===== */
+
+// ---- run
 $('btnRun').addEventListener('click', ()=>{
   try{
     const cur=process(curAttRows, curWageRows);
@@ -704,19 +572,79 @@ $('btnRun').addEventListener('click', ()=>{
     showToast('시뮬레이션 완료');
   }catch(err){ console.error(err); showToast('실패: '+err.message); }
 });
-function goto(n){ const pages=[...document.querySelectorAll('.page')]; pages.forEach(p=>{p.classList.remove('show');p.style.display='none';}); const tgt=$('page'+n); tgt.style.display='block'; requestAnimationFrame(()=>tgt.classList.add('show')); window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ---- nav
+function goto(n){ const pages=[...document.querySelectorAll('.page')]; pages.forEach(p=>{p.classList.remove('show');p.style.display='none';}); const tgt=document.getElementById('page'+n); tgt.style.display='block'; requestAnimationFrame(()=>tgt.classList.add('show')); window.scrollTo({top:0,behavior:'smooth'}); }
 function setActiveStep(n){ document.querySelectorAll('.step').forEach(x=>x.classList.remove('active')); document.querySelector(`.step[data-step="${n}"]`).classList.add('active'); }
 document.querySelectorAll('.step').forEach(s=> s.addEventListener('click', ()=>{ const n=Number(s.dataset.step); setActiveStep(n); goto(n); }));
-(function(){
-  const s=(v)=> v? 'OK':'X';
-  const el=$('diag'); if(!el) return;
-  if($('dX')) $('dX').textContent = s(typeof XLSX!=='undefined');
-  if($('dF')) $('dF').textContent = s(typeof saveAs==='function');
-  if($('dC')) $('dC').textContent = s(typeof Chart!=='undefined');
-  if($('dD')) $('dD').textContent = s(typeof ChartDataLabels!=='undefined');
-  el.style.display='block';
-})();
 
+// ---- pickers 바인딩 (핫픽스 2: DOMContentLoaded 이후)
+function bindPickers(){
+  attachPicker('curAtt','curAttName', async (file, name)=>{
+    const {rows}=await readExcel(file);
+    if(!rows.length) throw new Error('데이터가 비어있습니다.');
+    const cols=Object.keys(rows[0]||{});
+    if(!REQUIRED_ATT.every(h=>cols.includes(h))){
+      const map=await openMapper('당월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
+      curAttRows = normalizeRows(rows, map);
+    }else curAttRows=rows;
+    name.textContent=`선택 완료 · ${file.name} (${curAttRows.length}행)`; updateRunBtn();
+  });
+
+  attachPicker('curWage','curWageName', async (file, name)=>{
+    const {rows}=await readExcel(file);
+    if(!rows.length) throw new Error('데이터가 비어있습니다.');
+    const cols=Object.keys(rows[0]||{});
+    if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
+      const map=await openMapper('당월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
+      curWageRows = normalizeRows(rows, map);
+    }else curWageRows=rows;
+    name.textContent=`선택 완료 · ${file.name} (${curWageRows.length}행)`; updateRunBtn();
+  });
+
+  attachPicker('prevAtt','prevAttName', async (file, name)=>{
+    const {rows}=await readExcel(file);
+    const cols=Object.keys(rows[0]||{});
+    if(!REQUIRED_ATT.every(h=>cols.includes(h))){
+      const map=await openMapper('전월 근태 RAW 헤더 매핑', REQUIRED_ATT, cols);
+      prevAttRows = normalizeRows(rows, map);
+    }else prevAttRows=rows;
+    prevMergedMetrics=null;
+    name.textContent=`전월 RAW 선택 · ${file.name} (${prevAttRows.length}행)`;
+  });
+
+  attachPicker('prevWage','prevWageName', async (file, name)=>{
+    const {rows}=await readExcel(file);
+    const cols=Object.keys(rows[0]||{});
+    if(!REQUIRED_WAGE.every(h=>cols.includes(h))){
+      const map=await openMapper('전월 통상시급 헤더 매핑', REQUIRED_WAGE, cols);
+      prevWageRows = normalizeRows(rows, map);
+    }else prevWageRows=rows;
+    prevMergedMetrics=null;
+    name.textContent=`전월 통상시급 선택 · ${file.name} (${prevWageRows.length}행)`;
+  });
+
+  attachPicker('prevMerged','prevMergedName', async (file, name)=>{
+    const {wb}=await readExcel(file, ['근태정리']);
+    if(!wb.Sheets['근태정리']) throw new Error('근태정리 시트를 찾을 수 없습니다.');
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets['근태정리'],{defval:null});
+    const subtotal = rows.find(r=> Object.values(r).some(v=> String(v).includes('소계')));
+    const sumCols=(keys)=> subtotal
+      ? keys.reduce((a,k)=> a + number(subtotal[k]), 0)
+      : rows.reduce((a,r)=> a + keys.reduce((s,k)=> s + number(r[k]),0), 0);
+    const overHours = sumCols(['평일연장','평일야간']);
+    const holHours  = sumCols(['휴일일반','휴일연장','휴일야간','휴일연장야간']);
+    const overPay   = sumCols(['시간외수당']);
+    const holPay    = sumCols(['휴일수당']);
+    const appliedTotal = rows.reduce((a,r)=> a + number(r['적용시간']), 0) || (overHours+holHours);
+    prevMergedMetrics = {appliedTotal,overHours,holHours,overPay,holPay,totalPay:overPay+holPay,from:file.name};
+    prevAttRows=[]; prevWageRows=[];
+    name.textContent=`전월 통합 지정 · ${file.name} (근태정리 ${rows.length}행)`; showToast('전월 통합자료가 설정되었습니다.');
+  });
+}
+document.addEventListener('DOMContentLoaded', ()=>{ try{ bindPickers(); } catch(e){ console.error(e); showToast('업로드 초기화 실패: '+e.message);} });
+
+// ---- init
 goto(1);
 </script>
 </body>
