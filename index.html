@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <style>
-:root{--bg:#f6f8fb;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;--accent1:#2563eb;--accent2:#ef4444;--ok:#16a34a;--dark:#111827;--softblue:#e6efff;--softred:#ffe7e7;}
+:root{--bg:#f6f8fb;--card:#fff;--line:#e5e7eb;--ink:#111827;--muted:#6b7280;--accent1:#2563eb;--accent2:#ef4444;--ok:#16a34a;--dark:#111827;--softblue:#e6efff;--softred:#ffe7e7}
 *{box-sizing:border-box}
 body{font-family:'Pretendard','Noto Sans KR',system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);margin:0;color:var(--ink)}
 header{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;font-weight:800}
@@ -401,10 +401,13 @@ function process(attRows, wageRows){
     if(String(r['상태']||'').includes('반려')) continue;
     const raw=String(r['신청시간']||''); if(!raw.includes('~')) continue;
     let [s,e]=raw.split('~').map(x=>x.trim()); let sh=parseTime(s), eh=parseTime(e); if(sh<0||eh<0) continue; if(eh<sh) eh+=24;
-    const work=eh-sh, brk=Math.floor(work/5), applied=work-brk;
+    const work=eh-sh;
+    // ✅ 규정 반영: 4시간 초과 시 휴게 1시간(그 이상 추가 부여 없음)
+    const brk = work>4 ? 1 : 0;
+    const applied=work-brk;
     status.push({부서:r['근무자 부서'],이름:r['근무자'],근무일자:r['근무일'],근무유형:r['근무유형'],
       근무시작시간:fmtHM(sh),근무종료시간:fmtHM(eh),근무시간:+work.toFixed(2),휴게시간:+brk.toFixed(2),적용시간:+applied.toFixed(2),정수:ceilHalf(applied)});
-    const nm=String(r['근무자']||'').replace('(IT)','').trim(); if(!nm) continue; const dept=r['근무자 부서']; const ty=String(r['근무유형']||'').toLowerCase();
+    const nm=String(r['근무자']||'').replace('(IT)','').trim(); if(!nm) continue; const dept=String(r['근무자 부서']||'').trim(); const ty=String(r['근무유형']||'').toLowerCase();
     ensure(nm,dept); const A=agg[nm]; A.근무시간+=work; A.휴게시간+=brk; A.적용시간+=applied;
     let effStart=sh+brk; if(effStart>eh) effStart=eh;
     for(let t=effStart; t<eh-1e-6; t+=0.25){
@@ -418,12 +421,21 @@ function process(attRows, wageRows){
   }
   const summary=Object.values(agg).map((A,i)=>({순번:i+1,부서:A.부서,이름:A.이름,근무시간:+A.근무시간.toFixed(2),휴게시간:+A.휴게시간.toFixed(2),적용시간:+A.적용시간.toFixed(2),
     평일연장:+A.평일연장.toFixed(2),평일야간:+A.평일야간.toFixed(2),휴일일반:+A.휴일일반.toFixed(2),휴일연장:+A.휴일연장.toFixed(2),휴일야간:+A.휴일야간.toFixed(2),휴일연장야간:+A.휴일연장야간.toFixed(2)}));
-  // VBA 수당 직접 복원
+  // ✅ VBA 수당 복원 + 매칭 보강(부서|이름 → 이름만 → 부서만)
   if(wageRows && wageRows.length){
-    const map=new Map(); wageRows.forEach(r=> map.set(`${String(r['부서']||'').trim()}|${String(r['이름']||'').trim()}`, number(r['통상시급'])));
+    const key = (dept,name)=>`${String(dept||'').trim()}|${String(name||'').trim()}`;
+    const wageMap = new Map();
+    wageRows.forEach(r=>{
+      const dept=String(r['부서']||'').trim();
+      const name=String(r['이름']||'').trim();
+      const base=number(r['통상시급']);
+      if(!wageMap.has(key(dept,name))) wageMap.set(key(dept,name), base);
+      if(!wageMap.has(key('',name))) wageMap.set(key('',name), base); // 이름만
+      if(!wageMap.has(key(dept,''))) wageMap.set(key(dept,''), base); // 부서만
+    });
     const mult={평일연장:1.5, 평일야간:2.0, 휴일일반:1.5, 휴일연장:2.0, 휴일야간:2.0, 휴일연장야간:2.5};
     summary.forEach(r=>{
-      const base=map.get(`${r.부서}|${r.이름}`)||0;
+      const base = wageMap.get(key(r.부서,r.이름)) ?? wageMap.get(key('',r.이름)) ?? wageMap.get(key(r.부서,'')) ?? 0;
       r['시간외수당'] =
         Math.ceil(base*mult.평일연장*r.평일연장) +
         Math.ceil(base*mult.평일야간*r.평일야간);
@@ -456,7 +468,7 @@ function drawDoughnut(ctx, labels, data, colors){
       plugins:{legend:{position:'bottom',labels:{boxWidth:14}},
         datalabels:{color:'#fff',font:{weight:'700',size:14},formatter:v=>v?`${v}%`:''}}},plugins:[ChartDataLabels]});
 }
-// v2 차트 라벨 강화 (shadow, 배경, 둥글게, 패딩)
+// 강화된 막대 라벨(부드러운 배경/테두리/그림자)
 function drawBars(ctx, labels, prev, now, isMoney){
   if(ctx._chart) ctx._chart.destroy();
   ctx._chart=new Chart(ctx,{type:'bar',
@@ -503,10 +515,10 @@ function renderSummaryTable(rows){
   let thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
   let body='<tbody>';
   rows.forEach((r,i)=>{
-    body+='<tr>'+baseCols.map(c=>`<td>${r[c]??''}</td>`).join('')
-         + redCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')
-         + blueCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')
-         +'</tr>';
+    body+='<tr>'+baseCols.map(c=>`<td>${r[c]??''}</td>`).join('')+
+         redCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')+
+         blueCols.map(c=>`<td>${(c.includes('수당')? number(r[c]).toLocaleString(): r[c])??''}</td>`).join('')+
+         '</tr>';
   });
   const subtotal = '<tr class="subtotal">'+
     '<td colspan="3">소계</td>'+
@@ -561,10 +573,10 @@ function renderReport(now, prev){
   const d=(now.totalPay||0)-(prev.totalPay||0); const p=(prev.totalPay? d/prev.totalPay*100:0);
   const arrow=d>=0?'▲':'▼'; const col=d>=0?'#ef4444':'#2563eb'; $('sumDelta').style.color=col; $('sumDelta').textContent=`${arrow} ${Math.abs(d).toLocaleString()}원 (${p.toFixed(1)}%)`;
 
-  // 원형 — 전월 옅은톤 / 당월 진한톤
+  // 원형 — 전월 파스텔 / 당월 진한톤 (연장시간 vs 휴일시간 비율)
   const pct=(n,t)=> t? Math.round(n/t*100):0;
   const prevT=(prev.overHours||0)+(prev.holHours||0), nowT=(now.overHours||0)+(now.holHours||0);
-  drawDoughnut(donutPrev,['연장시간','휴일시간'],[pct(prev.overHours,prevT),pct(prev.holHours,prevT)],[ '#fecaca', '#bfdbfe' ]);
+  drawDoughnut(donutPrev,['연장시간','휴일시간'],[pct(prev.overHours,prevT),pct(prev.holHours,prevT)],[ '#aecbfa', '#c7d2fe' ]);
   drawDoughnut(donutNow, ['연장시간','휴일시간'],[pct(now.overHours,nowT),pct(now.holHours,nowT)],[ '#ef4444', '#2563eb' ]);
   // 막대 — 시간/수당
   drawBars(barHours,['적용시간(h)','연장시간(h)','휴일시간(h)'],
