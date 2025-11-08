@@ -447,9 +447,11 @@ function process(attRows, wageRows){
       r['휴일수당'] = Math.ceil(base*mult.휴일일반*r.휴일일반) + Math.ceil(base*mult.휴일연장*r.휴일연장) + Math.ceil(base*mult.휴일야간*r.휴일야간) + Math.ceil(base*mult.휴일연장야간*r.휴일연장야간);
     });
   }
-  const overHours=summary.reduce((a,r)=>a+r.평일연장+r.평일야간,0);
-  const holHours =summary.reduce((a,r)=>a+r.휴일일반+r.휴일연장+r.휴일야간+r.휴일연장야간,0);
-  const appliedTotal= status.reduce((a,r)=>a+number(r.적용시간),0);
+const overHours=summary.reduce((a,r)=>a+r.평일연장+r.평일야간,0);
+const holHours =summary.reduce((a,r)=>a+r.휴일일반+r.휴일연장+r.휴일야간+r.휴일연장야간,0);
+// ✅ 적용시간은 확정 집계 기준으로 강제 일치
+const appliedTotal = overHours + holHours;
+
   let overPay=0, holPay=0;
   if(wageRows && wageRows.length){
     summary.forEach(r=>{ overPay += number(r['시간외수당']); holPay += number(r['휴일수당']); });
