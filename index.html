@@ -88,6 +88,33 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
 </head>
 <body>
 <header>ATEC 인사관리(근태) 프로그램</header>
+<!-- 🔹 최초 안내문 오버레이 -->
+<div id="introOverlay" style="position:fixed;inset:0;z-index:10000;background:#fff;display:flex;align-items:center;justify-content:center;overflow:auto;padding:40px;">
+  <div style="max-width:900px;background:#ffffff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,0.15);padding:36px;">
+    <h1 style="margin-top:0;font-size:28px;font-weight:800;color:#111827;">ATEC 인사관리(근태) 자동화 프로그램 안내</h1>
+    <p style="line-height:1.9;font-size:16px;color:#374151;">
+      본 시스템은 <strong>ATEC 인사총무팀</strong>에서 개발한 근태 자동화 프로그램으로, 
+      그룹웨어의 시간외근무 승인 데이터와 ERP 통상시급 자료를 통합하여
+      <strong>근태현황 · 근태정리 · 익월적용</strong> 시트를 자동 생성하고,
+      전월 대비 리포트 및 수당 변동을 한눈에 확인할 수 있도록 설계되었습니다.
+    </p>
+    <ul style="margin:16px 0 0 20px;line-height:1.8;color:#374151;">
+      <li>RAW 데이터 및 통상시급 파일 업로드</li>
+      <li>전월 대비 근무시간·수당 증감률 자동 분석</li>
+      <li>근태현황 / 근태정리 / 익월적용 시트 자동 생성</li>
+      <li>Excel 파일 통합 저장 기능 제공</li>
+      <li>종결일자 공란 시 익월적용 자동 분류</li>
+    </ul>
+
+    <div style="margin-top:30px;text-align:right;">
+      <button id="btnIntroOk" 
+        style="background:#111827;color:#fff;padding:14px 26px;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;transition:0.2s;">
+        확인완료
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="stepper">
     <div class="step active" data-step="1"><div class="num">1</div>업로드</div>
@@ -99,7 +126,7 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
     <div class="step" data-step="4"><div class="num">4</div>데이터 저장</div>
   </div>
 </div>
-<main>
+<main style="display:none;" id="mainContent">
 <!-- 1. 업로드 -->
 <section id="page1" class="page show">
   <div class="card">
@@ -244,7 +271,7 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
 <section id="about" style="margin:40px auto;max-width:900px;background:#fff;border-radius:16px;padding:30px 40px;box-shadow:0 6px 20px rgba(0,0,0,0.08)">
   <h2 style="margin-top:0;font-size:24px;font-weight:800;color:#111827;">ATEC 인사관리(근태) 자동화 프로그램</h2>
   <p style="line-height:1.8;color:#374151;font-size:15px;margin-top:10px;">
-    본 시스템은 <strong>ATEC CN 경영지원실</strong>에서 개발한 근태 자동화 프로그램으로,<br>
+    본 시스템은 <strong>ATEC 인사총무팀</strong>에서 개발한 근태 자동화 프로그램으로,<br>
     그룹웨어의 시간외근무 승인 데이터와 ERP의 통상시급 자료를 통합하여
     <strong>근태현황 · 근태정리 · 익월적용</strong> 시트를 자동 생성하고,<br>
     전월 대비 리포트 및 수당 변동을 한눈에 확인할 수 있도록 설계되었습니다.
@@ -279,10 +306,10 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
 
   <div style="margin-top:26px;padding:14px 16px;border-left:4px solid #2563eb;background:#f0f6ff;">
     <strong>문의</strong><br>
-    ATEC CN 경영지원실 김선홍 선임<br>
-    📧 <a href="mailto:shkim5@ateccn.kr">shkim5@ateccn.kr</a>
+    ATEC CN 경영지원실 김선홍 선임<br> 
+    📧 <a href="mailto:shkim5@ateccn.kr">shkim5@ateccn.kr</a> 
   </div>
-</section>
+</section>   
 
 </main>
 
@@ -822,7 +849,13 @@ document.addEventListener('DOMContentLoaded', ()=>{ try{ bindPickers(); } catch(
 
 /* === 초기 페이지 === */
 goto(1);
+/* ===== 최초 안내문 확인 후 메인 표시 ===== */
+document.getElementById('btnIntroOk').addEventListener('click', () => {
+  document.getElementById('introOverlay').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
 </script>
 </body>
 </html>
-
