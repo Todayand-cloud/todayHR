@@ -88,6 +88,7 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
 </head>
 <body>
 <header>ATEC 인사관리(근태) 프로그램</header>
+
 <!-- 🔹 최초 안내문 오버레이 -->
 <div id="introOverlay" style="position:fixed;inset:0;z-index:10000;background:#fff;display:flex;align-items:center;justify-content:center;overflow:auto;padding:40px;">
   <div style="max-width:900px;background:#ffffff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,0.15);padding:36px;">
@@ -98,6 +99,7 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
       <strong>근태현황 · 근태정리 · 익월적용</strong> 시트를 자동 생성하고,
       전월 대비 리포트 및 수당 변동을 한눈에 확인할 수 있도록 설계되었습니다.
     </p>
+
     <ul style="margin:16px 0 0 20px;line-height:1.8;color:#374151;">
       <li>RAW 데이터 및 통상시급 파일 업로드</li>
       <li>전월 대비 근무시간·수당 증감률 자동 분석</li>
@@ -106,10 +108,20 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
       <li>종결일자 공란 시 익월적용 자동 분류</li>
     </ul>
 
+    <!-- ⚠️ 주의사항 문구 추가 -->
+    <div style="margin-top:28px;background:#f9fafb;border-left:4px solid #ef4444;padding:14px 18px;border-radius:10px;">
+      <p style="margin:0;color:#374151;line-height:1.8;font-size:14.8px;">
+        ⚠️ <strong>주의사항</strong><br>
+        본 시스템은 <strong>참고용 자동화 도구</strong>로 제공됩니다.<br>
+        산출 결과의 해석 및 최종 판단은 사용자 본인의 책임 하에 이루어지며,<br>
+        개발자 및 운영자는 그 결과에 대해 법적·재정적 책임을 지지 않습니다.
+      </p>
+    </div>
+
     <div style="margin-top:30px;text-align:right;">
       <button id="btnIntroOk" 
         style="background:#111827;color:#fff;padding:14px 26px;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;transition:0.2s;">
-        확인완료
+        확인 및 동의완료
       </button>
     </div>
   </div>
