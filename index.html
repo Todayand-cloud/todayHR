@@ -240,6 +240,57 @@ td.bg-hol {background:#ffecef;} /* 휴일수당 파스텔 */
     <p class="muted" style="margin-top:10px">※ 통합저장은 전월 데이터 보관을 하지 않습니다. 전월 비교는 1페이지의 <b>전월 자료 업로드</b>로 지정하세요.</p>
   </div>
 </section>
+<!-- 🔹 프로그램 소개 섹션 (외부 사용자용) -->
+<section id="about" style="margin:40px auto;max-width:900px;background:#fff;border-radius:16px;padding:30px 40px;box-shadow:0 6px 20px rgba(0,0,0,0.08)">
+  <h2 style="margin-top:0;font-size:24px;font-weight:800;color:#111827;">ATEC 인사관리(근태) 자동화 프로그램</h2>
+  <p style="line-height:1.8;color:#374151;font-size:15px;margin-top:10px;">
+    본 시스템은 <strong>ATEC 인사총무팀</strong>에서 개발한 근태 자동화 프로그램으로,<br>
+    그룹웨어의 시간외근무 승인 데이터와 ERP의 통상시급 자료를 통합하여
+    <strong>근태현황 · 근태정리 · 익월적용</strong> 시트를 자동 생성하고,<br>
+    전월 대비 리포트 및 수당 변동을 한눈에 확인할 수 있도록 설계되었습니다.
+  </p>
+
+  <h3 style="margin-top:26px;color:#111827;">주요 기능</h3>
+  <ul style="margin-left:18px;line-height:1.9;color:#374151;font-size:15px;">
+    <li>RAW 데이터(시간외근무 승인현황) 및 통상시급 파일 업로드</li>
+    <li>전월 대비 근무시간·수당 증감률 자동 분석 및 시각화</li>
+    <li>근태현황 / 근태정리 / 익월적용 시트 자동 생성</li>
+    <li>Excel 통합 다운로드 지원 (개별·전체 선택 가능)</li>
+    <li>종결일자 공란 시 익월적용 자동 분류</li>
+  </ul>
+
+  <h3 style="margin-top:26px;color:#111827;">기본 계산 로직</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;">
+    <thead>
+      <tr style="background:#f3f4f6;">
+        <th style="border:1px solid #e5e7eb;padding:8px;">항목</th>
+        <th style="border:1px solid #e5e7eb;padding:8px;">기준</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="border:1px solid #e5e7eb;padding:8px;">평일연장</td><td style="border:1px solid #e5e7eb;padding:8px;">평일 18:00 ~ 22:00</td></tr>
+      <tr><td style="border:1px solid #e5e7eb;padding:8px;">평일야간</td><td style="border:1px solid #e5e7eb;padding:8px;">평일 22:00 ~ 익일 06:00</td></tr>
+      <tr><td style="border:1px solid #e5e7eb;padding:8px;">휴일일반</td><td style="border:1px solid #e5e7eb;padding:8px;">휴일 06:00 ~ 22:00</td></tr>
+      <tr><td style="border:1px solid #e5e7eb;padding:8px;">휴일연장</td><td style="border:1px solid #e5e7eb;padding:8px;">휴일일반 중 8시간 초과</td></tr>
+      <tr><td style="border:1px solid #e5e7eb;padding:8px;">휴일야간</td><td style="border:1px solid #e5e7eb;padding:8px;">휴일 22:00 ~ 익일 06:00</td></tr>
+      <tr><td style="border:1px solid #e5e7eb;padding:8px;">휴일연장야간</td><td style="border:1px solid #e5e7eb;padding:8px;">휴일 중 22시 이후 8시간 초과분</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:26px;color:#111827;">기술 구성</h3>
+  <ul style="margin-left:18px;line-height:1.9;color:#374151;font-size:15px;">
+    <li>Frontend: HTML5, CSS3, JavaScript (Vanilla)</li>
+    <li>라이브러리: Chart.js · xlsx.js · FileSaver.js</li>
+    <li>로컬 파일 기반으로 작동 (서버 설치 불필요)</li>
+  </ul>
+
+  <div style="margin-top:26px;padding:14px 16px;border-left:4px solid #2563eb;background:#f0f6ff;">
+    <strong>문의</strong><br>
+    ATEC 인사총무팀 · 자동화 프로젝트 담당<br>
+    📧 <a href="mailto:atec.hr@atec.co.kr">atec.hr@atec.co.kr</a>
+  </div>
+</section>
+
 </main>
 
 <!-- 헤더 매핑 모달 -->
