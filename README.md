@@ -81,7 +81,7 @@ cd ATEC-Attendance-Manager
 # Python 예시
 python -m http.server 8080
 ```
-브라우저에서 👉 [http://localhost:8080](http://localhost:8080)
+브라우저에서 👉 [https://todayand-cloud.github.io/todayHR/](https://todayand-cloud.github.io/todayHR/)
 
 ---
 
